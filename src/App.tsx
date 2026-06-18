@@ -226,13 +226,9 @@ function DrawApp({
     }
   }
 
-  function resetParticipants() {
+  async function restartCollecting() {
     disconnect();
-    participantMapRef.current = new Map();
-    setParticipants([]);
-    setResult(null);
-    setRemainingSeconds(null);
-    setScreen("ready");
+    await startCollecting();
   }
 
   useEffect(() => {
@@ -306,21 +302,21 @@ function DrawApp({
             ) : null}
             {screen === "collecting" ? (
               <>
-                <button className="secondary large" onClick={runDraw}>
+                <button className="primary large" onClick={runDraw}>
                   추첨하기
                 </button>
-                <button className="primary large" onClick={stopCollecting}>
+                <button className="secondary large" onClick={stopCollecting}>
                   참여자 모집 종료
                 </button>
               </>
             ) : null}
             {screen === "completed" ? (
               <>
-                <button className="secondary large" onClick={resetParticipants}>
-                  참여자 다시 모집하기
-                </button>
                 <button className="primary large" onClick={runDraw}>
                   추첨하기
+                </button>
+                <button className="secondary large" onClick={restartCollecting}>
+                  참여자 다시 모집하기
                 </button>
               </>
             ) : null}
