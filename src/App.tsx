@@ -144,7 +144,7 @@ function DrawApp({
   const [result, setResult] = useState<DrawResult | null>(null);
   const [slotOpen, setSlotOpen] = useState(false);
   const [timerEnabled, setTimerEnabled] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(60);
+  const [timerMinutes, setTimerMinutes] = useState(1);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
   const [notice, setNotice] = useState("");
@@ -187,7 +187,7 @@ function DrawApp({
     setParticipants([]);
     setChatStatus("connecting");
     setScreen("collecting");
-    setRemainingSeconds(timerEnabled ? timerSeconds : null);
+    setRemainingSeconds(timerEnabled ? timerMinutes * 60 : null);
 
     try {
       connectionRef.current = await connectChat(
@@ -266,6 +266,14 @@ function DrawApp({
     () => selectEligibleViewers(participants, winners, options).length,
     [participants, winners, options]
   );
+  const remainingTimeText = useMemo(() => {
+    if (remainingSeconds === null) return "";
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, [remainingSeconds]);
 
   return (
     <div className="app-shell">
@@ -343,30 +351,36 @@ function DrawApp({
                 }))
               }
             />
-            {screen === "ready" ? (
-              <div className="timer-option">
-                <Toggle
-                  label="타이머 사용하기"
-                  checked={timerEnabled}
-                  onChange={() => setTimerEnabled((enabled) => !enabled)}
-                />
-                {timerEnabled ? (
-                  <label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={timerSeconds}
-                      onChange={(event) =>
-                        setTimerSeconds(
-                          Math.max(1, Number.parseInt(event.target.value) || 1)
-                        )
+            <div className="timer-option">
+              <Toggle
+                label="타이머 사용하기"
+                checked={timerEnabled}
+                onChange={() => setTimerEnabled((enabled) => !enabled)}
+              />
+              {timerEnabled ? (
+                <label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    step="1"
+                    value={timerMinutes}
+                    onChange={(event) => {
+                      const value = Math.floor(Number(event.target.value));
+                      setTimerMinutes(
+                        Number.isFinite(value) && value > 0 ? value : 1
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                        event.preventDefault();
                       }
-                    />
-                    <span>초</span>
-                  </label>
-                ) : null}
-              </div>
-            ) : null}
+                    }}
+                  />
+                  <span>분</span>
+                </label>
+              ) : null}
+            </div>
           </div>
           <TtsControls
             settings={ttsSettings}
@@ -376,7 +390,7 @@ function DrawApp({
         </section>
 
         {remainingSeconds !== null ? (
-          <div className="timer">{remainingSeconds}초</div>
+          <div className="timer">{remainingTimeText}</div>
         ) : null}
 
         {notice ? <p className="notice">{notice}</p> : null}
