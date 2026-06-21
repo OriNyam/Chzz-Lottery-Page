@@ -5,6 +5,7 @@ import { drawViewer, selectEligibleViewers } from "./lib/draw";
 import { speakMessage, stopSpeaking } from "./lib/speech";
 import {
   drawVoteOption,
+  findMergeTargetOption,
   normalizeVoteLabel,
   parseVoteMessage,
 } from "./lib/voteRoulette";
@@ -27,6 +28,10 @@ interface TtsSettings {
 type Screen = "ready" | "collecting" | "completed";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
 type AppTabId = "viewer-draw" | "free-vote-roulette";
+type ViewerVote = {
+  optionId: string;
+  viewer: Viewer;
+};
 
 const APP_TABS: Array<{
   id: AppTabId;
@@ -605,6 +610,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
   const [result, setResult] = useState<VoteRouletteResult | null>(null);
   const [rouletteOpen, setRouletteOpen] = useState(false);
   const optionMapRef = useRef(new Map<string, VoteOption>());
+  const viewerVoteMapRef = useRef(new Map<string, ViewerVote>());
   const flushTimeoutRef = useRef<number | null>(null);
   const connectionRef = useRef<ChatConnection | null>(null);
   const subscriberOnlyRef = useRef(subscriberOnly);
@@ -626,28 +632,61 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
     flushTimeoutRef.current = window.setTimeout(flushOptions, 120);
   }
 
+  function syncOptionFromVotes(optionId: string) {
+    const option = optionMapRef.current.get(optionId);
+    if (!option) return;
+
+    const voters = [...viewerVoteMapRef.current.values()]
+      .filter((vote) => vote.optionId === optionId)
+      .map((vote) => vote.viewer);
+
+    if (voters.length === 0) {
+      optionMapRef.current.delete(optionId);
+      return;
+    }
+
+    optionMapRef.current.set(optionId, {
+      ...option,
+      author: voters[0],
+      count: voters.length,
+    });
+  }
+
   function addVoteOption(viewer: Viewer, message: string) {
     if (subscriberOnlyRef.current && !viewer.subscribe) return;
 
     const label = parseVoteMessage(message);
     if (!label) return;
 
-    const id = normalizeVoteLabel(label);
-    const current = optionMapRef.current.get(id);
+    const previousVote = viewerVoteMapRef.current.get(viewer.userIdHash);
+    if (previousVote) {
+      viewerVoteMapRef.current.delete(viewer.userIdHash);
+      syncOptionFromVotes(previousVote.optionId);
+    }
 
-    if (current) {
-      optionMapRef.current.set(id, {
-        ...current,
-        count: current.count + 1,
-      });
-    } else {
-      optionMapRef.current.set(id, {
-        id,
+    const exactId = normalizeVoteLabel(label);
+    const exactOption = optionMapRef.current.get(exactId);
+    const mergeTarget =
+      exactOption ??
+      findMergeTargetOption(label, [...optionMapRef.current.values()]);
+    const optionId = mergeTarget?.id ?? exactId;
+
+    if (!mergeTarget) {
+      optionMapRef.current.set(optionId, {
+        id: optionId,
         label,
         author: viewer,
-        count: 1,
+        count: 0,
       });
     }
+
+    viewerVoteMapRef.current.set(viewer.userIdHash, {
+      optionId,
+      viewer,
+    });
+    syncOptionFromVotes(optionId);
+
+    setNotice("");
 
     scheduleOptionFlush();
   }
@@ -662,6 +701,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
     setNotice("");
     setResult(null);
     optionMapRef.current = new Map();
+    viewerVoteMapRef.current = new Map();
     setOptions([]);
     setChatStatus("connecting");
     setScreen("collecting");
@@ -807,6 +847,18 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
 
       {notice ? <p className="notice">{notice}</p> : null}
 
+      <section className="card roulette-preview-card">
+        <div className="section-title">
+          <div>
+            <h2>실시간 룰렛</h2>
+            <p className="muted">
+              채팅에서 들어온 최신 후보가 바로 룰렛에 반영됩니다.
+            </p>
+          </div>
+        </div>
+        <VoteRouletteWheel options={options} />
+      </section>
+
       <section className="participant-layout">
         <div className="card participants-card">
           <div className="section-title">
@@ -831,7 +883,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
           </div>
           <div className="participant-footer">
             <span>후보 {options.length}개</span>
-            <span>총 추천 {options.reduce((sum, option) => sum + option.count, 0)}회</span>
+            <span>총 투표 {options.reduce((sum, option) => sum + option.count, 0)}표</span>
           </div>
         </div>
       </section>
@@ -862,7 +914,7 @@ function VoteOptionCard({ option }: { option: VoteOption }) {
       <strong>{option.label}</strong>
       <div>
         <ViewerChip viewer={option.author} />
-        <span className="vote-count">{option.count}회</span>
+        <span className="vote-count">{option.count}표</span>
       </div>
     </div>
   );
@@ -1033,6 +1085,44 @@ function SlotModal({
   );
 }
 
+function VoteRouletteWheel({
+  options,
+  spinning = false,
+}: {
+  options: readonly VoteOption[];
+  spinning?: boolean;
+}) {
+  const wheelItems = options.slice(0, 16);
+
+  return (
+    <div className="roulette-wheel-area">
+      <div className="roulette-pointer" />
+      <div className="roulette-wheel-wrap">
+        <div className={`roulette-wheel ${spinning ? "spinning" : ""}`}>
+          {wheelItems.map((option, index) => {
+            const angle = (360 / wheelItems.length) * index;
+            return (
+              <div
+                className="roulette-item"
+                key={`${option.id}-${index}`}
+                style={{
+                  transform: `rotate(${angle}deg) translateY(-132px) rotate(-${angle}deg)`,
+                }}
+              >
+                {option.label}
+              </div>
+            );
+          })}
+        </div>
+        {wheelItems.length === 0 ? (
+          <div className="roulette-empty-label">후보 대기</div>
+        ) : null}
+        <div className="roulette-center">{options.length || "?"}</div>
+      </div>
+    </div>
+  );
+}
+
 function VoteRouletteModal({
   result,
   onClose,
@@ -1041,10 +1131,6 @@ function VoteRouletteModal({
   onClose: () => void;
 }) {
   const [complete, setComplete] = useState(false);
-  const wheelItems = useMemo(() => {
-    const candidates = result.shuffledCandidates.slice(0, 16);
-    return candidates.length > 0 ? candidates : [result.winner];
-  }, [result]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setComplete(true), 3_600);
@@ -1057,24 +1143,7 @@ function VoteRouletteModal({
         {!complete ? (
           <>
             <p className="eyebrow">FAIR ROULETTE</p>
-            <div className="roulette-pointer" />
-            <div className="roulette-wheel-wrap">
-              <div className="roulette-wheel">
-                {wheelItems.map((option, index) => {
-                  const angle = (360 / wheelItems.length) * index;
-                  return (
-                    <div
-                      className="roulette-item"
-                      key={`${option.id}-${index}`}
-                      style={{ transform: `rotate(${angle}deg) translateY(-132px) rotate(-${angle}deg)` }}
-                    >
-                      {option.label}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="roulette-center">?</div>
-            </div>
+            <VoteRouletteWheel options={result.shuffledCandidates} spinning />
             <p className="muted">CSPRNG + Fisher-Yates로 당첨 후보를 먼저 공정하게 확정합니다.</p>
           </>
         ) : (

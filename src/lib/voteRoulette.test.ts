@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   drawVoteOption,
+  findMergeTargetOption,
+  getVoteLabelSimilarity,
   normalizeVoteLabel,
+  normalizeVoteLabelForMerge,
   parseVoteMessage,
 } from "./voteRoulette";
 import type { VoteOption } from "../types";
@@ -33,6 +36,18 @@ describe("parseVoteMessage", () => {
 describe("normalizeVoteLabel", () => {
   it("normalizes whitespace and casing for duplicate detection", () => {
     expect(normalizeVoteLabel("  ABC   참치 ")).toBe("abc 참치");
+  });
+});
+
+describe("vote option merging", () => {
+  it("compares labels after removing whitespace", () => {
+    expect(normalizeVoteLabelForMerge(" 참 치  김 밥 ")).toBe("참치김밥");
+    expect(getVoteLabelSimilarity("참 치 김밥", "참치김밥")).toBe(1);
+  });
+
+  it("finds an existing option when labels match by at least 70 percent", () => {
+    expect(findMergeTargetOption("참 치", options)?.label).toBe("참치");
+    expect(findMergeTargetOption("완전히다른말", options)).toBeNull();
   });
 });
 
