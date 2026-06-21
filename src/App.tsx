@@ -1103,13 +1103,22 @@ function SlotModal({
 function VoteRouletteWheel({
   options,
   spinning = false,
+  winnerId,
 }: {
   options: readonly VoteOption[];
   spinning?: boolean;
+  winnerId?: string;
 }) {
   const wheelItems = options.slice(0, 16);
   const radius = 170;
   const center = 180;
+  const winnerIndex = Math.max(
+    0,
+    wheelItems.findIndex((option) => option.id === winnerId)
+  );
+  const sliceAngle = wheelItems.length > 0 ? 360 / wheelItems.length : 0;
+  const winnerCenterAngle = winnerIndex * sliceAngle + sliceAngle / 2;
+  const spinDegrees = 360 * 6 - winnerCenterAngle;
 
   function describeSlice(startAngle: number, endAngle: number) {
     const start = polarToCartesian(center, center, radius, endAngle);
@@ -1128,13 +1137,19 @@ function VoteRouletteWheel({
     <div className="roulette-wheel-area">
       <div className="roulette-pointer" />
       <div className="roulette-wheel-wrap">
-        <div className={`roulette-wheel ${spinning ? "spinning" : ""}`}>
+        <div
+          className={`roulette-wheel ${spinning ? "spinning" : ""}`}
+          style={
+            spinning
+              ? ({ "--spin-degrees": `${spinDegrees}deg` } as React.CSSProperties)
+              : undefined
+          }
+        >
           <svg viewBox="0 0 360 360" role="img" aria-label="자유투표 룰렛">
             {wheelItems.length === 0 ? (
               <circle className="roulette-empty-slice" cx={center} cy={center} r={radius} />
             ) : (
               wheelItems.map((option, index) => {
-                const sliceAngle = 360 / wheelItems.length;
                 const startAngle = index * sliceAngle;
                 const endAngle = startAngle + sliceAngle;
                 const labelAngle = startAngle + sliceAngle / 2;
@@ -1211,7 +1226,11 @@ function VoteRouletteModal({
         {!complete ? (
           <>
             <p className="eyebrow">FAIR ROULETTE</p>
-            <VoteRouletteWheel options={result.shuffledCandidates} spinning />
+            <VoteRouletteWheel
+              options={result.shuffledCandidates}
+              spinning
+              winnerId={result.winner.id}
+            />
             <p className="muted">CSPRNG + Fisher-Yates로 당첨 후보를 먼저 공정하게 확정합니다.</p>
           </>
         ) : (

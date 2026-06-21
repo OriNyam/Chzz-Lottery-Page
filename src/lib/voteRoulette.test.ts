@@ -32,6 +32,12 @@ describe("parseVoteMessage", () => {
     expect(parseVoteMessage("!   ")).toBeNull();
   });
 
+  it("rejects labels longer than 12 characters", () => {
+    expect(parseVoteMessage("!123456789012")).toBe("123456789012");
+    expect(parseVoteMessage("!1234567890123")).toBeNull();
+    expect(parseVoteMessage("1234567890123", true)).toBeNull();
+  });
+
   it("can accept normal chat for temporary testing", () => {
     expect(parseVoteMessage("참치", true)).toBe("참치");
     expect(parseVoteMessage("!참치", true)).toBe("참치");

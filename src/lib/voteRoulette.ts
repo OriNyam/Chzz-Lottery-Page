@@ -1,6 +1,8 @@
 import { secureShuffle } from "./fairRandom";
 import type { VoteOption, VoteRouletteResult } from "../types";
 
+export const MAX_VOTE_LABEL_LENGTH = 12;
+
 const HANGUL_BASE_CODE = 0xac00;
 const HANGUL_LAST_CODE = 0xd7a3;
 const JUNGSEONG_COUNT = 21;
@@ -164,13 +166,18 @@ export function parseVoteMessage(
 
   if (acceptPlainMessage) {
     const label = trimmed.startsWith("!") ? trimmed.slice(1).trim() : trimmed;
-    return label.length > 0 ? label.replace(/\s+/g, " ") : null;
+    const normalized = label.replace(/\s+/g, " ");
+    return normalized.length > 0 && normalized.length <= MAX_VOTE_LABEL_LENGTH
+      ? normalized
+      : null;
   }
 
   if (!trimmed.startsWith("!")) return null;
 
   const label = trimmed.slice(1).trim().replace(/\s+/g, " ");
-  return label.length > 0 ? label : null;
+  return label.length > 0 && label.length <= MAX_VOTE_LABEL_LENGTH
+    ? label
+    : null;
 }
 
 export function normalizeVoteLabel(label: string): string {
