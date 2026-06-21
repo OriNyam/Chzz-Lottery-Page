@@ -28,17 +28,12 @@ export async function getSystemVoices(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
-export async function speakMessage(
-  voiceName: string,
-  message: string
-): Promise<void> {
+export async function speakMessage(message: string): Promise<void> {
   if (!message.trim() || !("speechSynthesis" in window)) return;
 
   const voices = await getSystemVoices();
   const selectedVoice =
-    voices.find((voice) => voice.name === voiceName) ??
-    voices.find((voice) => voice.lang === "ko-KR") ??
-    voices[0];
+    voices.find((voice) => voice.lang === "ko-KR") ?? voices[0];
   const utterance = new SpeechSynthesisUtterance(message);
 
   if (selectedVoice) utterance.voice = selectedVoice;
