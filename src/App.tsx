@@ -23,6 +23,7 @@ const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
 const SHOW_TEST_PLAIN_CHAT_TOGGLE = true;
 const SHOW_TEST_PLAIN_DONATION_TOGGLE = true;
+const ENABLE_DONATION_VOTE_ROULETTE = false;
 
 interface TtsSettings {
   enabled: boolean;
@@ -51,10 +52,12 @@ APP_TABS.push({
   label: "자유투표 룰렛",
 });
 
-APP_TABS.push({
-  id: "donation-vote-roulette",
-  label: "후원투표 룰렛",
-});
+if (ENABLE_DONATION_VOTE_ROULETTE) {
+  APP_TABS.push({
+    id: "donation-vote-roulette",
+    label: "후원투표 룰렛",
+  });
+}
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);
@@ -379,7 +382,8 @@ function DrawApp({
         {activeTab === "free-vote-roulette" ? (
           <FreeVoteRouletteTab channelId={channel.channelId} />
         ) : null}
-        {activeTab === "donation-vote-roulette" ? (
+        {ENABLE_DONATION_VOTE_ROULETTE &&
+        activeTab === "donation-vote-roulette" ? (
           <DonationVoteRouletteTab channelId={channel.channelId} />
         ) : null}
       </main>
