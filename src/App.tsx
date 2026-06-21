@@ -356,6 +356,13 @@ function DrawApp({
         >
           개인정보 처리방침
         </a>
+        <a
+          href="https://github.com/OriNyam/Chzz-Lottery-Page"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
       </footer>
 
       {slotOpen && result ? (

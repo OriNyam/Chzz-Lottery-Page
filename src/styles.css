@@ -77,7 +77,7 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .participant-footer { display: flex; justify-content: space-between; padding: 15px 18px; color: #a9b0b0; border-top: 1px solid #ffffff12; font-size: 13px; }
 .history { margin-top: 18px; padding: 20px; }
 .winner-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.footer { display: flex; justify-content: center; padding: 0 24px 28px; color: #a9b0b0; font-size: 13px; }
+.footer { display: flex; justify-content: center; gap: 16px; padding: 0 24px 28px; color: #a9b0b0; font-size: 13px; }
 .footer a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 20px; background: #000000b5; backdrop-filter: blur(8px); }
