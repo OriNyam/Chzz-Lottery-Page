@@ -606,13 +606,15 @@ function ViewerChip({
   viewer,
   inactive = false,
   prefix,
+  className = "",
 }: {
   viewer: Viewer;
   inactive?: boolean;
   prefix?: string;
+  className?: string;
 }) {
   return (
-    <div className={`viewer-chip ${inactive ? "inactive" : ""}`}>
+    <div className={`viewer-chip ${inactive ? "inactive" : ""} ${className}`}>
       {prefix ? <strong>{prefix}</strong> : null}
       {viewer.badges.map((badge, index) => (
         <img key={`${badge}-${index}`} src={badge} alt="" />
@@ -698,7 +700,7 @@ function SlotModal({
               <div className="slot-track">
                 {animationList.map((viewer, index) => (
                   <div className="slot-row" key={`${viewer.userIdHash}-${index}`}>
-                    {viewer.nickname}
+                    <ViewerChip viewer={viewer} className="slot-viewer-chip" />
                   </div>
                 ))}
               </div>
@@ -707,7 +709,7 @@ function SlotModal({
         ) : (
           <div className="winner">
             <p className="eyebrow">WINNER</p>
-            <h2>{result.winner.nickname}</h2>
+            <ViewerChip viewer={result.winner} className="winner-viewer-chip" />
             <p>후보 {result.candidates.length}명 중 추첨되었습니다.</p>
             <div className="winner-chat">
               <div className="winner-chat-title">

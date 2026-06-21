@@ -85,8 +85,13 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .slot-window { width: min(440px, 100%); height: 82px; overflow: hidden; border-block: 2px solid #00ffa3; background: #0e1113; }
 .slot-track { animation: slot-spin 2.8s cubic-bezier(.12,.72,.12,1) forwards; }
 .slot-row { height: 78px; display: grid; place-items: center; font-size: 25px; font-weight: 900; }
+.slot-viewer-chip { max-width: 92%; justify-content: center; padding: 12px 16px; border-color: #00ffa333; background: #202b29; font-size: 22px; font-weight: 900; }
+.slot-viewer-chip img { width: 24px; height: 24px; }
 .winner { display: flex; width: 100%; flex-direction: column; gap: 16px; align-items: center; animation: winner-in .45s ease both; }
 .winner h2 { color: #00ffa3; font-size: clamp(36px, 8vw, 62px); }
+.winner-viewer-chip { max-width: 100%; justify-content: center; padding: 16px 22px; border-color: #00ffa355; background: #0f241f; color: #00ffa3; font-size: clamp(30px, 6vw, 52px); font-weight: 900; box-shadow: 0 0 34px #00ffa31a; }
+.winner-viewer-chip img { width: clamp(30px, 5vw, 44px); height: clamp(30px, 5vw, 44px); }
+.winner-viewer-chip b { font-size: 13px; }
 .winner p { color: #a9b0b0; }
 .winner-chat { width: 100%; overflow: hidden; border: 1px solid #ffffff12; border-radius: 12px; background: #101315; text-align: left; }
 .winner-chat-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #ffffff12; }
