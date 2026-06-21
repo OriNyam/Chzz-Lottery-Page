@@ -22,6 +22,7 @@ import type {
 const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
 const SHOW_TEST_PLAIN_CHAT_TOGGLE = true;
+const SHOW_TEST_PLAIN_DONATION_TOGGLE = true;
 
 interface TtsSettings {
   enabled: boolean;
@@ -916,6 +917,8 @@ function DonationVoteRouletteTab({ channelId }: { channelId: string }) {
   const [screen, setScreen] = useState<Screen>("ready");
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(1);
+  const [acceptPlainDonationForTest, setAcceptPlainDonationForTest] =
+    useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
   const [notice, setNotice] = useState("");
@@ -926,6 +929,12 @@ function DonationVoteRouletteTab({ channelId }: { channelId: string }) {
   const flushTimeoutRef = useRef<number | null>(null);
   const connectionRef = useRef<ChatConnection | null>(null);
   const donationSequenceRef = useRef(0);
+  const acceptPlainDonationForTestRef = useRef(acceptPlainDonationForTest);
+
+  useEffect(() => {
+    acceptPlainDonationForTestRef.current =
+      SHOW_TEST_PLAIN_DONATION_TOGGLE && acceptPlainDonationForTest;
+  }, [acceptPlainDonationForTest]);
 
   function flushOptions() {
     if (flushTimeoutRef.current !== null) {
@@ -941,7 +950,10 @@ function DonationVoteRouletteTab({ channelId }: { channelId: string }) {
   }
 
   function addDonationVote(viewer: Viewer, message: string, payAmount: number) {
-    const label = parseVoteMessage(message);
+    const label = parseVoteMessage(
+      message,
+      acceptPlainDonationForTestRef.current
+    );
     const voteCount = getDonationVoteCount(payAmount);
 
     if (!label || voteCount <= 0) return;
@@ -1124,6 +1136,15 @@ function DonationVoteRouletteTab({ channelId }: { channelId: string }) {
               </label>
             ) : null}
           </div>
+          {SHOW_TEST_PLAIN_DONATION_TOGGLE ? (
+            <Toggle
+              label="테스트용 후원 전체 참가"
+              checked={acceptPlainDonationForTest}
+              onChange={() =>
+                setAcceptPlainDonationForTest((enabled) => !enabled)
+              }
+            />
+          ) : null}
         </div>
       </section>
 
