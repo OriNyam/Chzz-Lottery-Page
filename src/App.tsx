@@ -1108,26 +1108,65 @@ function VoteRouletteWheel({
   spinning?: boolean;
 }) {
   const wheelItems = options.slice(0, 16);
+  const radius = 170;
+  const center = 180;
+
+  function describeSlice(startAngle: number, endAngle: number) {
+    const start = polarToCartesian(center, center, radius, endAngle);
+    const end = polarToCartesian(center, center, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+    return [
+      `M ${center} ${center}`,
+      `L ${start.x} ${start.y}`,
+      `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+      "Z",
+    ].join(" ");
+  }
 
   return (
     <div className="roulette-wheel-area">
       <div className="roulette-pointer" />
       <div className="roulette-wheel-wrap">
         <div className={`roulette-wheel ${spinning ? "spinning" : ""}`}>
-          {wheelItems.map((option, index) => {
-            const angle = (360 / wheelItems.length) * index;
-            return (
-              <div
-                className="roulette-item"
-                key={`${option.id}-${index}`}
-                style={{
-                  transform: `rotate(${angle}deg) translateY(-132px) rotate(-${angle}deg)`,
-                }}
-              >
-                {option.label}
-              </div>
-            );
-          })}
+          <svg viewBox="0 0 360 360" role="img" aria-label="자유투표 룰렛">
+            {wheelItems.length === 0 ? (
+              <circle className="roulette-empty-slice" cx={center} cy={center} r={radius} />
+            ) : (
+              wheelItems.map((option, index) => {
+                const sliceAngle = 360 / wheelItems.length;
+                const startAngle = index * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+                const labelAngle = startAngle + sliceAngle / 2;
+                const labelPosition = polarToCartesian(
+                  center,
+                  center,
+                  radius * 0.62,
+                  labelAngle
+                );
+
+                return (
+                  <g key={`${option.id}-${index}`}>
+                    <path
+                      className="roulette-slice"
+                      d={describeSlice(startAngle, endAngle)}
+                      style={{
+                        fill: `hsl(${(index * 47) % 360} 76% 42%)`,
+                      }}
+                    />
+                    <text
+                      className="roulette-label"
+                      x={labelPosition.x}
+                      y={labelPosition.y}
+                      transform={`rotate(${labelAngle} ${labelPosition.x} ${labelPosition.y})`}
+                    >
+                      {option.label}
+                    </text>
+                  </g>
+                );
+              })
+            )}
+          </svg>
         </div>
         {wheelItems.length === 0 ? (
           <div className="roulette-empty-label">후보 대기</div>
@@ -1136,6 +1175,20 @@ function VoteRouletteWheel({
       </div>
     </div>
   );
+}
+
+function polarToCartesian(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInDegrees: number
+) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
 }
 
 function VoteRouletteModal({

@@ -113,10 +113,13 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .roulette-modal { position: relative; width: min(760px, 100%); min-height: 560px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; padding: 30px; border: 1px solid #00ffa344; border-radius: 22px; background: radial-gradient(circle at 50% 35%, #1f3430, #15191b 58%); box-shadow: 0 0 90px #00ffa31f; text-align: center; overflow: hidden; }
 .roulette-wheel-area { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .roulette-pointer { width: 0; height: 0; margin-bottom: -8px; border-inline: 16px solid transparent; border-top: 0; border-bottom: 28px solid #00ffa3; filter: drop-shadow(0 0 12px #00ffa399); z-index: 2; }
-.roulette-wheel-wrap { position: relative; width: min(360px, 82vw); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(from 0deg, #00ffa3 0 12deg, #24302f 12deg 24deg, #36ffd0 24deg 36deg, #1a2022 36deg 48deg); box-shadow: inset 0 0 0 12px #101416, 0 0 45px #00ffa324; }
-.roulette-wheel { position: absolute; inset: 18px; border-radius: 50%; background: radial-gradient(circle, #18201f 0 34%, #111618 35% 100%); transition: transform .35s ease; }
+.roulette-wheel-wrap { position: relative; width: min(380px, 82vw); aspect-ratio: 1; display: grid; place-items: center; border: 10px solid #101416; border-radius: 50%; background: #101416; box-shadow: inset 0 0 0 3px #00ffa355, 0 0 45px #00ffa324; }
+.roulette-wheel { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: #18201f; transition: transform .35s ease; }
 .roulette-wheel.spinning { animation: roulette-spin 3.6s cubic-bezier(.09,.74,.08,1) forwards; }
-.roulette-item { position: absolute; left: 50%; top: 50%; width: 112px; margin-left: -56px; margin-top: -15px; overflow: hidden; padding: 6px 8px; border: 1px solid #ffffff18; border-radius: 99px; background: #202b29e6; color: #edf4f2; font-size: 13px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 4px 12px #00000040; }
+.roulette-wheel svg { width: 100%; height: 100%; display: block; }
+.roulette-slice { stroke: #101416; stroke-width: 2.4; filter: drop-shadow(0 1px 0 #ffffff18); }
+.roulette-empty-slice { fill: #202428; stroke: #00ffa333; stroke-width: 3; }
+.roulette-label { fill: #fff; stroke: #0009; stroke-width: 3px; paint-order: stroke; dominant-baseline: middle; font-size: 15px; font-weight: 900; text-anchor: middle; letter-spacing: -.3px; pointer-events: none; }
 .roulette-empty-label { position: relative; z-index: 2; margin-top: 132px; color: #a9b0b0; font-size: 14px; font-weight: 800; }
 .roulette-center { position: relative; z-index: 2; display: grid; width: 82px; height: 82px; place-items: center; border: 8px solid #101416; border-radius: 50%; color: #08231a; background: #00ffa3; font-size: 34px; font-weight: 900; box-shadow: 0 0 24px #00ffa366; }
 .roulette-winner { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 16px; animation: winner-in .45s ease both; }
