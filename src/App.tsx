@@ -21,7 +21,7 @@ import type {
 
 const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
-const SHOW_TEST_PLAIN_CHAT_TOGGLE = true;
+const SHOW_TEST_PLAIN_CHAT_TOGGLE = false;
 const SHOW_TEST_PLAIN_DONATION_TOGGLE = true;
 const ENABLE_DONATION_VOTE_ROULETTE = false;
 
