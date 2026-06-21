@@ -869,40 +869,11 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
           <div>
             <h2>실시간 룰렛</h2>
             <p className="muted">
-              채팅에서 들어온 최신 후보가 바로 룰렛에 반영됩니다.
+              채팅에 !오리처럼 느낌표를 붙여 말하면 후보로 들어갑니다.
             </p>
           </div>
         </div>
         <VoteRouletteWheel options={options} />
-      </section>
-
-      <section className="participant-layout">
-        <div className="card participants-card">
-          <div className="section-title">
-            <div>
-              <h2>룰렛 후보 목록</h2>
-              <p className="muted">
-                {screen === "collecting"
-                  ? "채팅에 !참치처럼 느낌표를 붙여 말하면 후보로 들어갑니다."
-                  : "모집을 시작하면 시청자가 직접 룰렛 후보를 추가할 수 있습니다."}
-              </p>
-            </div>
-            <Status status={chatStatus} />
-          </div>
-          <div className="vote-options">
-            {options.length === 0 ? (
-              <div className="empty">아직 룰렛 후보가 없습니다.</div>
-            ) : (
-              options.map((option) => (
-                <VoteOptionCard key={option.id} option={option} />
-              ))
-            )}
-          </div>
-          <div className="participant-footer">
-            <span>후보 {options.length}개</span>
-            <span>총 투표 {options.reduce((sum, option) => sum + option.count, 0)}표</span>
-          </div>
-        </div>
       </section>
 
       {result ? (
@@ -922,18 +893,6 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
         />
       ) : null}
     </>
-  );
-}
-
-function VoteOptionCard({ option }: { option: VoteOption }) {
-  return (
-    <div className="vote-option-card">
-      <strong>{option.label}</strong>
-      <div>
-        <ViewerChip viewer={option.author} />
-        <span className="vote-count">{option.count}표</span>
-      </div>
-    </div>
   );
 }
 
