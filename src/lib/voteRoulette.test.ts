@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   drawVoteOption,
   findMergeTargetOption,
+  getDonationVoteCount,
   getVoteLabelSimilarity,
   normalizeVoteLabel,
   normalizeVoteLabelForMerge,
@@ -63,6 +64,15 @@ describe("vote option merging", () => {
 
   it("uses Hangul sound comparison for romanized options", () => {
     expect(getVoteLabelSimilarity("chamchi", "참치")).toBeGreaterThanOrEqual(0.7);
+  });
+});
+
+describe("getDonationVoteCount", () => {
+  it("counts one vote per 1,000 won", () => {
+    expect(getDonationVoteCount(999)).toBe(0);
+    expect(getDonationVoteCount(1000)).toBe(1);
+    expect(getDonationVoteCount(10_000)).toBe(10);
+    expect(getDonationVoteCount(10_999)).toBe(10);
   });
 });
 

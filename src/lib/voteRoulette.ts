@@ -2,6 +2,7 @@ import { secureShuffle } from "./fairRandom";
 import type { VoteOption, VoteRouletteResult } from "../types";
 
 export const MAX_VOTE_LABEL_LENGTH = 12;
+export const DONATION_WON_PER_VOTE = 1000;
 
 const HANGUL_BASE_CODE = 0xac00;
 const HANGUL_LAST_CODE = 0xd7a3;
@@ -182,6 +183,14 @@ export function parseVoteMessage(
 
 export function normalizeVoteLabel(label: string): string {
   return label.trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
+}
+
+export function getDonationVoteCount(payAmount: number): number {
+  if (!Number.isFinite(payAmount) || payAmount < DONATION_WON_PER_VOTE) {
+    return 0;
+  }
+
+  return Math.floor(payAmount / DONATION_WON_PER_VOTE);
 }
 
 export function normalizeVoteLabelForMerge(label: string): string {

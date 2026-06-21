@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { connectChat, type ChatConnection } from "./lib/chat";
+import { connectChat, connectDonation, type ChatConnection } from "./lib/chat";
 import { findChannel } from "./lib/channel";
 import { drawViewer, selectEligibleViewers } from "./lib/draw";
 import { speakMessage, stopSpeaking } from "./lib/speech";
 import {
   drawVoteOption,
   findMergeTargetOption,
+  getDonationVoteCount,
   normalizeVoteLabel,
   parseVoteMessage,
 } from "./lib/voteRoulette";
@@ -28,7 +29,7 @@ interface TtsSettings {
 
 type Screen = "ready" | "collecting" | "completed";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
-type AppTabId = "viewer-draw" | "free-vote-roulette";
+type AppTabId = "viewer-draw" | "free-vote-roulette" | "donation-vote-roulette";
 type ViewerVote = {
   optionId: string;
   viewer: Viewer;
@@ -47,6 +48,11 @@ const APP_TABS: Array<{
 APP_TABS.push({
   id: "free-vote-roulette",
   label: "자유투표 룰렛",
+});
+
+APP_TABS.push({
+  id: "donation-vote-roulette",
+  label: "후원투표 룰렛",
 });
 
 function formatNumber(value: number): string {
@@ -371,6 +377,9 @@ function DrawApp({
         ) : null}
         {activeTab === "free-vote-roulette" ? (
           <FreeVoteRouletteTab channelId={channel.channelId} />
+        ) : null}
+        {activeTab === "donation-vote-roulette" ? (
+          <DonationVoteRouletteTab channelId={channel.channelId} />
         ) : null}
       </main>
 
@@ -876,6 +885,263 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
               채팅에 !오리처럼 느낌표를 붙여 말하면 후보로 들어갑니다.
             </p>
           </div>
+        </div>
+        <div className="roulette-preview-body">
+          <VoteOptionRanking options={rankedOptions} />
+          <VoteRouletteWheel options={options} />
+        </div>
+      </section>
+
+      {result ? (
+        <section className="card history">
+          <h2>최근 룰렛 결과</h2>
+          <div className="vote-winner-summary">
+            <strong>{result.winner.label}</strong>
+            <span>후보 {result.candidates.length}개 중 당첨</span>
+          </div>
+        </section>
+      ) : null}
+
+      {rouletteOpen && result ? (
+        <VoteRouletteModal
+          result={result}
+          onClose={() => setRouletteOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function DonationVoteRouletteTab({ channelId }: { channelId: string }) {
+  const [screen, setScreen] = useState<Screen>("ready");
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(1);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
+  const [notice, setNotice] = useState("");
+  const [options, setOptions] = useState<VoteOption[]>([]);
+  const [result, setResult] = useState<VoteRouletteResult | null>(null);
+  const [rouletteOpen, setRouletteOpen] = useState(false);
+  const optionMapRef = useRef(new Map<string, VoteOption>());
+  const flushTimeoutRef = useRef<number | null>(null);
+  const connectionRef = useRef<ChatConnection | null>(null);
+  const donationSequenceRef = useRef(0);
+
+  function flushOptions() {
+    if (flushTimeoutRef.current !== null) {
+      window.clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+    setOptions([...optionMapRef.current.values()]);
+  }
+
+  function scheduleOptionFlush() {
+    if (flushTimeoutRef.current !== null) return;
+    flushTimeoutRef.current = window.setTimeout(flushOptions, 120);
+  }
+
+  function addDonationVote(viewer: Viewer, message: string, payAmount: number) {
+    const label = parseVoteMessage(message);
+    const voteCount = getDonationVoteCount(payAmount);
+
+    if (!label || voteCount <= 0) return;
+
+    donationSequenceRef.current += 1;
+    const donationViewer: Viewer = {
+      ...viewer,
+      userIdHash: `${viewer.userIdHash}-donation-${donationSequenceRef.current}`,
+    };
+    const exactId = normalizeVoteLabel(label);
+    const exactOption = optionMapRef.current.get(exactId);
+    const mergeTarget =
+      exactOption ??
+      findMergeTargetOption(label, [...optionMapRef.current.values()]);
+    const optionId = mergeTarget?.id ?? exactId;
+
+    if (mergeTarget) {
+      optionMapRef.current.set(optionId, {
+        ...mergeTarget,
+        count: mergeTarget.count + voteCount,
+        voters: [...mergeTarget.voters, donationViewer],
+      });
+    } else {
+      optionMapRef.current.set(optionId, {
+        id: optionId,
+        label,
+        author: donationViewer,
+        count: voteCount,
+        voters: [donationViewer],
+      });
+    }
+
+    setNotice("");
+    scheduleOptionFlush();
+  }
+
+  function disconnect() {
+    connectionRef.current?.disconnect();
+    connectionRef.current = null;
+    setChatStatus("idle");
+  }
+
+  async function startCollecting() {
+    setNotice("");
+    setResult(null);
+    optionMapRef.current = new Map();
+    donationSequenceRef.current = 0;
+    setOptions([]);
+    setChatStatus("connecting");
+    setScreen("collecting");
+    setRemainingSeconds(timerEnabled ? timerMinutes * 60 : null);
+
+    try {
+      connectionRef.current = await connectDonation(
+        channelId,
+        addDonationVote,
+        (status) => setChatStatus(status)
+      );
+    } catch {
+      setChatStatus("error");
+      setNotice("후원 메시지 연결에 실패했습니다. 방송 상태를 확인한 뒤 다시 시작해주세요.");
+    }
+  }
+
+  function stopCollecting() {
+    disconnect();
+    flushOptions();
+    setRemainingSeconds(null);
+    setScreen("completed");
+  }
+
+  function runRoulette() {
+    flushOptions();
+
+    try {
+      const nextResult = drawVoteOption([...optionMapRef.current.values()]);
+      setResult(nextResult);
+      setRouletteOpen(true);
+      setNotice("");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "룰렛 추첨에 실패했습니다.");
+    }
+  }
+
+  async function restartCollecting() {
+    disconnect();
+    await startCollecting();
+  }
+
+  useEffect(() => {
+    if (remainingSeconds === null || screen !== "collecting") return;
+    if (remainingSeconds <= 0) {
+      stopCollecting();
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setRemainingSeconds((current) => (current ?? 1) - 1),
+      1_000
+    );
+    return () => window.clearTimeout(timer);
+  }, [remainingSeconds, screen]);
+
+  useEffect(() => {
+    return () => {
+      connectionRef.current?.disconnect();
+      if (flushTimeoutRef.current !== null) {
+        window.clearTimeout(flushTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const remainingTimeText = useMemo(() => {
+    if (remainingSeconds === null) return "";
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, [remainingSeconds]);
+  const rankedOptions = useMemo(
+    () => [...options].sort((left, right) => right.count - left.count),
+    [options]
+  );
+
+  return (
+    <>
+      <section className="toolbar card">
+        <div className="toolbar-buttons">
+          {screen === "ready" ? (
+            <button className="primary large" onClick={startCollecting}>
+              후원투표 모집 시작
+            </button>
+          ) : null}
+          {screen === "collecting" ? (
+            <button className="secondary large" onClick={stopCollecting}>
+              후원투표 모집 종료
+            </button>
+          ) : null}
+          {screen === "completed" ? (
+            <>
+              <button className="primary large" onClick={runRoulette}>
+                룰렛 돌리기
+              </button>
+              <button className="secondary large" onClick={restartCollecting}>
+                후원투표 다시 모집하기
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        <div className="option-grid">
+          <div className="timer-option">
+            <Toggle
+              label="타이머 사용하기"
+              checked={timerEnabled}
+              onChange={() => setTimerEnabled((enabled) => !enabled)}
+            />
+            {timerEnabled ? (
+              <label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={timerMinutes}
+                  onChange={(event) => {
+                    const value = Math.floor(Number(event.target.value));
+                    setTimerMinutes(
+                      Number.isFinite(value) && value > 0 ? value : 1
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+                <span>분</span>
+              </label>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {remainingSeconds !== null ? (
+        <div className="timer">{remainingTimeText}</div>
+      ) : null}
+
+      {notice ? <p className="notice">{notice}</p> : null}
+
+      <section className="card roulette-preview-card">
+        <div className="section-title">
+          <div>
+            <h2>실시간 룰렛</h2>
+            <p className="muted">
+              후원 메시지에 !오리처럼 느낌표를 붙이면 천원당 1표로 후보에 반영됩니다.
+            </p>
+          </div>
+          <Status status={chatStatus} />
         </div>
         <div className="roulette-preview-body">
           <VoteOptionRanking options={rankedOptions} />
