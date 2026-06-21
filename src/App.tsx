@@ -20,6 +20,7 @@ import type {
 
 const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
+const SHOW_TEST_PLAIN_CHAT_TOGGLE = true;
 
 interface TtsSettings {
   enabled: boolean;
@@ -603,6 +604,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
   const [subscriberOnly, setSubscriberOnly] = useState(false);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(1);
+  const [acceptPlainChatForTest, setAcceptPlainChatForTest] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
   const [notice, setNotice] = useState("");
@@ -614,10 +616,16 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
   const flushTimeoutRef = useRef<number | null>(null);
   const connectionRef = useRef<ChatConnection | null>(null);
   const subscriberOnlyRef = useRef(subscriberOnly);
+  const acceptPlainChatForTestRef = useRef(acceptPlainChatForTest);
 
   useEffect(() => {
     subscriberOnlyRef.current = subscriberOnly;
   }, [subscriberOnly]);
+
+  useEffect(() => {
+    acceptPlainChatForTestRef.current =
+      SHOW_TEST_PLAIN_CHAT_TOGGLE && acceptPlainChatForTest;
+  }, [acceptPlainChatForTest]);
 
   function flushOptions() {
     if (flushTimeoutRef.current !== null) {
@@ -655,7 +663,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
   function addVoteOption(viewer: Viewer, message: string) {
     if (subscriberOnlyRef.current && !viewer.subscribe) return;
 
-    const label = parseVoteMessage(message);
+    const label = parseVoteMessage(message, acceptPlainChatForTestRef.current);
     if (!label) return;
 
     const previousVote = viewerVoteMapRef.current.get(viewer.userIdHash);
@@ -838,6 +846,13 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
               </label>
             ) : null}
           </div>
+          {SHOW_TEST_PLAIN_CHAT_TOGGLE ? (
+            <Toggle
+              label="테스트용 일반채팅 참가"
+              checked={acceptPlainChatForTest}
+              onChange={() => setAcceptPlainChatForTest((enabled) => !enabled)}
+            />
+          ) : null}
         </div>
       </section>
 

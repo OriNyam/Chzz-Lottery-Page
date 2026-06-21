@@ -31,6 +31,11 @@ describe("parseVoteMessage", () => {
     expect(parseVoteMessage("참치")).toBeNull();
     expect(parseVoteMessage("!   ")).toBeNull();
   });
+
+  it("can accept normal chat for temporary testing", () => {
+    expect(parseVoteMessage("참치", true)).toBe("참치");
+    expect(parseVoteMessage("!참치", true)).toBe("참치");
+  });
 });
 
 describe("normalizeVoteLabel", () => {
@@ -48,6 +53,10 @@ describe("vote option merging", () => {
   it("finds an existing option when labels match by at least 70 percent", () => {
     expect(findMergeTargetOption("참 치", options)?.label).toBe("참치");
     expect(findMergeTargetOption("완전히다른말", options)).toBeNull();
+  });
+
+  it("uses Hangul sound comparison for romanized options", () => {
+    expect(getVoteLabelSimilarity("chamchi", "참치")).toBeGreaterThanOrEqual(0.7);
   });
 });
 

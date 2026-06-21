@@ -1,8 +1,171 @@
 import { secureShuffle } from "./fairRandom";
 import type { VoteOption, VoteRouletteResult } from "../types";
 
-export function parseVoteMessage(message: string): string | null {
+const HANGUL_BASE_CODE = 0xac00;
+const HANGUL_LAST_CODE = 0xd7a3;
+const JUNGSEONG_COUNT = 21;
+const JONGSEONG_COUNT = 28;
+
+const CHOSEONG = [
+  "ㄱ",
+  "ㄲ",
+  "ㄴ",
+  "ㄷ",
+  "ㄸ",
+  "ㄹ",
+  "ㅁ",
+  "ㅂ",
+  "ㅃ",
+  "ㅅ",
+  "ㅆ",
+  "ㅇ",
+  "ㅈ",
+  "ㅉ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
+];
+const JUNGSEONG = [
+  "ㅏ",
+  "ㅐ",
+  "ㅑ",
+  "ㅒ",
+  "ㅓ",
+  "ㅔ",
+  "ㅕ",
+  "ㅖ",
+  "ㅗ",
+  "ㅘ",
+  "ㅙ",
+  "ㅚ",
+  "ㅛ",
+  "ㅜ",
+  "ㅝ",
+  "ㅞ",
+  "ㅟ",
+  "ㅠ",
+  "ㅡ",
+  "ㅢ",
+  "ㅣ",
+];
+const JONGSEONG = [
+  "",
+  "ㄱ",
+  "ㄲ",
+  "ㄳ",
+  "ㄴ",
+  "ㄵ",
+  "ㄶ",
+  "ㄷ",
+  "ㄹ",
+  "ㄺ",
+  "ㄻ",
+  "ㄼ",
+  "ㄽ",
+  "ㄾ",
+  "ㄿ",
+  "ㅀ",
+  "ㅁ",
+  "ㅂ",
+  "ㅄ",
+  "ㅅ",
+  "ㅆ",
+  "ㅇ",
+  "ㅈ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
+];
+
+const CHOSEONG_ROMAJA = [
+  "g",
+  "kk",
+  "n",
+  "d",
+  "tt",
+  "r",
+  "m",
+  "b",
+  "pp",
+  "s",
+  "ss",
+  "",
+  "j",
+  "jj",
+  "ch",
+  "k",
+  "t",
+  "p",
+  "h",
+];
+const JUNGSEONG_ROMAJA = [
+  "a",
+  "ae",
+  "ya",
+  "yae",
+  "eo",
+  "e",
+  "yeo",
+  "ye",
+  "o",
+  "wa",
+  "wae",
+  "oe",
+  "yo",
+  "u",
+  "wo",
+  "we",
+  "wi",
+  "yu",
+  "eu",
+  "ui",
+  "i",
+];
+const JONGSEONG_ROMAJA = [
+  "",
+  "k",
+  "k",
+  "k",
+  "n",
+  "n",
+  "n",
+  "t",
+  "l",
+  "k",
+  "m",
+  "l",
+  "l",
+  "l",
+  "p",
+  "l",
+  "m",
+  "p",
+  "p",
+  "t",
+  "t",
+  "ng",
+  "t",
+  "t",
+  "k",
+  "t",
+  "p",
+  "t",
+];
+
+export function parseVoteMessage(
+  message: string,
+  acceptPlainMessage = false
+): string | null {
   const trimmed = message.trim();
+
+  if (acceptPlainMessage) {
+    const label = trimmed.startsWith("!") ? trimmed.slice(1).trim() : trimmed;
+    return label.length > 0 ? label.replace(/\s+/g, " ") : null;
+  }
 
   if (!trimmed.startsWith("!")) return null;
 
@@ -15,24 +178,74 @@ export function normalizeVoteLabel(label: string): string {
 }
 
 export function normalizeVoteLabelForMerge(label: string): string {
-  return label.replace(/\s+/g, "").toLocaleLowerCase("ko-KR");
+  return label
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .toLocaleLowerCase("ko-KR");
 }
 
-export function getVoteLabelSimilarity(source: string, target: string): number {
-  const left = normalizeVoteLabelForMerge(source);
-  const right = normalizeVoteLabelForMerge(target);
+function decomposeHangul(label: string): string {
+  return Array.from(normalizeVoteLabelForMerge(label))
+    .map((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      if (code < HANGUL_BASE_CODE || code > HANGUL_LAST_CODE) {
+        return character;
+      }
 
+      const syllableIndex = code - HANGUL_BASE_CODE;
+      const choseongIndex = Math.floor(
+        syllableIndex / (JUNGSEONG_COUNT * JONGSEONG_COUNT)
+      );
+      const jungseongIndex = Math.floor(
+        (syllableIndex % (JUNGSEONG_COUNT * JONGSEONG_COUNT)) /
+          JONGSEONG_COUNT
+      );
+      const jongseongIndex = syllableIndex % JONGSEONG_COUNT;
+
+      return `${CHOSEONG[choseongIndex]}${JUNGSEONG[jungseongIndex]}${JONGSEONG[jongseongIndex]}`;
+    })
+    .join("");
+}
+
+function romanizeHangul(label: string): string {
+  return Array.from(normalizeVoteLabelForMerge(label))
+    .map((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      if (code < HANGUL_BASE_CODE || code > HANGUL_LAST_CODE) {
+        return character;
+      }
+
+      const syllableIndex = code - HANGUL_BASE_CODE;
+      const choseongIndex = Math.floor(
+        syllableIndex / (JUNGSEONG_COUNT * JONGSEONG_COUNT)
+      );
+      const jungseongIndex = Math.floor(
+        (syllableIndex % (JUNGSEONG_COUNT * JONGSEONG_COUNT)) /
+          JONGSEONG_COUNT
+      );
+      const jongseongIndex = syllableIndex % JONGSEONG_COUNT;
+
+      return `${CHOSEONG_ROMAJA[choseongIndex]}${JUNGSEONG_ROMAJA[jungseongIndex]}${JONGSEONG_ROMAJA[jongseongIndex]}`;
+    })
+    .join("");
+}
+
+function getEditSimilarity(left: string, right: string): number {
   if (left.length === 0 || right.length === 0) return 0;
 
-  const previous = Array.from({ length: right.length + 1 }, () => 0);
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
   const current = Array.from({ length: right.length + 1 }, () => 0);
 
   for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    current[0] = leftIndex;
+
     for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      current[rightIndex] =
-        left[leftIndex - 1] === right[rightIndex - 1]
-          ? previous[rightIndex - 1] + 1
-          : Math.max(previous[rightIndex], current[rightIndex - 1]);
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      current[rightIndex] = Math.min(
+        previous[rightIndex] + 1,
+        current[rightIndex - 1] + 1,
+        previous[rightIndex - 1] + substitutionCost
+      );
     }
 
     for (let index = 0; index <= right.length; index += 1) {
@@ -41,7 +254,47 @@ export function getVoteLabelSimilarity(source: string, target: string): number {
     }
   }
 
-  return previous[right.length] / Math.max(left.length, right.length);
+  return 1 - previous[right.length] / Math.max(left.length, right.length);
+}
+
+function getDiceSimilarity(left: string, right: string): number {
+  if (left === right) return 1;
+  if (left.length < 2 || right.length < 2) return 0;
+
+  const leftBigrams = new Map<string, number>();
+  for (let index = 0; index < left.length - 1; index += 1) {
+    const bigram = left.slice(index, index + 2);
+    leftBigrams.set(bigram, (leftBigrams.get(bigram) ?? 0) + 1);
+  }
+
+  let intersection = 0;
+  for (let index = 0; index < right.length - 1; index += 1) {
+    const bigram = right.slice(index, index + 2);
+    const count = leftBigrams.get(bigram) ?? 0;
+    if (count > 0) {
+      leftBigrams.set(bigram, count - 1);
+      intersection += 1;
+    }
+  }
+
+  return (2 * intersection) / (left.length + right.length - 2);
+}
+
+export function getVoteLabelSimilarity(source: string, target: string): number {
+  const sourceText = normalizeVoteLabelForMerge(source);
+  const targetText = normalizeVoteLabelForMerge(target);
+  const sourceJamo = decomposeHangul(source);
+  const targetJamo = decomposeHangul(target);
+  const sourceSound = romanizeHangul(source);
+  const targetSound = romanizeHangul(target);
+
+  return Math.max(
+    getEditSimilarity(sourceText, targetText),
+    getDiceSimilarity(sourceText, targetText),
+    getEditSimilarity(sourceJamo, targetJamo),
+    getDiceSimilarity(sourceJamo, targetJamo),
+    getEditSimilarity(sourceSound, targetSound)
+  );
 }
 
 export function findMergeTargetOption<T extends { label: string }>(
