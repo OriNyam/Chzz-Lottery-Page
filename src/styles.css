@@ -79,7 +79,17 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .viewer-chip b { color: #00ffa3; font-size: 10px; }
 .participant-footer { display: flex; justify-content: space-between; padding: 15px 18px; color: #a9b0b0; border-top: 1px solid #ffffff12; font-size: 13px; }
 .roulette-preview-card { margin-top: 18px; overflow: hidden; }
-.roulette-preview-card .roulette-wheel-area { padding: 22px; }
+.roulette-preview-body { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: 18px; align-items: center; padding: 18px; }
+.roulette-preview-card .roulette-wheel-area { padding: 4px; }
+.roulette-ranking { height: 100%; max-height: 430px; overflow: hidden; border: 1px solid #ffffff12; border-radius: 14px; background: #101315; }
+.roulette-ranking-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid #ffffff12; }
+.roulette-ranking-title span { color: #00ffa3; font-size: 12px; font-weight: 900; }
+.roulette-ranking-list { max-height: 370px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.roulette-ranking-list .muted { padding: 16px 4px; text-align: center; }
+.roulette-ranking-item { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #ffffff0f; border-radius: 10px; background: #202428; }
+.roulette-ranking-item span { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: #08231a; background: #00ffa3; font-size: 12px; font-weight: 1000; }
+.roulette-ranking-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roulette-ranking-item b { color: #00ffa3; font-size: 12px; }
 .history { margin-top: 18px; padding: 20px; }
 .winner-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .footer { display: flex; justify-content: center; gap: 16px; padding: 0 24px 28px; color: #a9b0b0; font-size: 13px; }
@@ -138,6 +148,9 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
   .header-inner { align-items: flex-start; flex-direction: column; }
   .channel { width: 100%; }
   .channel .text-button { margin-left: auto; }
+  .roulette-preview-body { grid-template-columns: 1fr; }
+  .roulette-ranking { max-height: 240px; }
+  .roulette-ranking-list { max-height: 180px; }
 }
 
 @media (max-width: 560px) {

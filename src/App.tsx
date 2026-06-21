@@ -785,6 +785,10 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
 
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, [remainingSeconds]);
+  const rankedOptions = useMemo(
+    () => [...options].sort((left, right) => right.count - left.count),
+    [options]
+  );
 
   return (
     <>
@@ -873,7 +877,10 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
             </p>
           </div>
         </div>
-        <VoteRouletteWheel options={options} />
+        <div className="roulette-preview-body">
+          <VoteOptionRanking options={rankedOptions} />
+          <VoteRouletteWheel options={options} />
+        </div>
       </section>
 
       {result ? (
@@ -893,6 +900,30 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
         />
       ) : null}
     </>
+  );
+}
+
+function VoteOptionRanking({ options }: { options: readonly VoteOption[] }) {
+  return (
+    <aside className="roulette-ranking" aria-label="현재 룰렛 후보 목록">
+      <div className="roulette-ranking-title">
+        <strong>현재 후보</strong>
+        <span>{options.length}개</span>
+      </div>
+      <div className="roulette-ranking-list">
+        {options.length === 0 ? (
+          <p className="muted">아직 후보가 없습니다.</p>
+        ) : (
+          options.map((option, index) => (
+            <div className="roulette-ranking-item" key={option.id}>
+              <span>{index + 1}</span>
+              <strong>{option.label}</strong>
+              <b>{option.count}표</b>
+            </div>
+          ))
+        )}
+      </div>
+    </aside>
   );
 }
 
