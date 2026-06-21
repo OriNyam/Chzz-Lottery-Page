@@ -14,6 +14,17 @@ interface TtsSettings {
 
 type Screen = "ready" | "collecting" | "completed";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
+type AppTabId = "viewer-draw";
+
+const APP_TABS: Array<{
+  id: AppTabId;
+  label: string;
+}> = [
+  {
+    id: "viewer-draw",
+    label: "시청자 추첨",
+  },
+];
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);
@@ -133,6 +144,7 @@ function DrawApp({
   channel: Channel;
   onChangeChannel: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<AppTabId>("viewer-draw");
   const [screen, setScreen] = useState<Screen>("ready");
   const [options, setOptions] = useState<DrawOptions>({
     subscriberOnly: false,
@@ -268,6 +280,8 @@ function DrawApp({
 
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, [remainingSeconds]);
+  const activeTabLabel =
+    APP_TABS.find((tab) => tab.id === activeTab)?.label ?? APP_TABS[0].label;
 
   return (
     <div className="app-shell">
@@ -275,7 +289,7 @@ function DrawApp({
         <div className="header-inner">
           <div>
             <p className="eyebrow">FAIR CHZZK DRAW</p>
-            <h1>시청자 추첨</h1>
+            <h1>{activeTabLabel}</h1>
           </div>
           <div className="channel">
             {channel.channelImageUrl ? (
@@ -295,156 +309,42 @@ function DrawApp({
       </header>
 
       <main className="content">
-        <section className="toolbar card">
-          <div className="toolbar-buttons">
-            {screen === "ready" ? (
-              <button className="primary large" onClick={startCollecting}>
-                참여자 모집 시작
-              </button>
-            ) : null}
-            {screen === "collecting" ? (
-              <>
-                <button className="primary large" onClick={runDraw}>
-                  추첨하기
-                </button>
-                <button className="secondary large" onClick={stopCollecting}>
-                  참여자 모집 종료
-                </button>
-              </>
-            ) : null}
-            {screen === "completed" ? (
-              <>
-                <button className="primary large" onClick={runDraw}>
-                  추첨하기
-                </button>
-                <button className="secondary large" onClick={restartCollecting}>
-                  참여자 다시 모집하기
-                </button>
-              </>
-            ) : null}
-          </div>
+        <nav className="tab-list" aria-label="기능 선택">
+          {APP_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-          <div className="option-grid">
-            <Toggle
-              label="구독자만 추첨하기"
-              checked={options.subscriberOnly}
-              onChange={() =>
-                setOptions((current) => ({
-                  ...current,
-                  subscriberOnly: !current.subscriberOnly,
-                }))
-              }
-            />
-            <Toggle
-              label="이미 당첨된 시청자 제외하기"
-              checked={options.excludePreviousWinners}
-              onChange={() =>
-                setOptions((current) => ({
-                  ...current,
-                  excludePreviousWinners: !current.excludePreviousWinners,
-                }))
-              }
-            />
-            <div className="timer-option">
-              <Toggle
-                label="타이머 사용하기"
-                checked={timerEnabled}
-                onChange={() => setTimerEnabled((enabled) => !enabled)}
-              />
-              {timerEnabled ? (
-                <label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    step="1"
-                    value={timerMinutes}
-                    onChange={(event) => {
-                      const value = Math.floor(Number(event.target.value));
-                      setTimerMinutes(
-                        Number.isFinite(value) && value > 0 ? value : 1
-                      );
-                    }}
-                    onKeyDown={(event) => {
-                      if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
-                        event.preventDefault();
-                      }
-                    }}
-                  />
-                  <span>분</span>
-                </label>
-              ) : null}
-            </div>
-            <Toggle
-              label="TTS 사용"
-              checked={ttsSettings.enabled}
-              onChange={() =>
-                setTtsSettings((settings) => ({
-                  enabled: !settings.enabled,
-                }))
-              }
-            />
-          </div>
-        </section>
-
-        {remainingSeconds !== null ? (
-          <div className="timer">{remainingTimeText}</div>
-        ) : null}
-
-        {notice ? <p className="notice">{notice}</p> : null}
-
-        <section className="participant-layout">
-          <div className="card participants-card">
-            <div className="section-title">
-              <div>
-                <h2>참여자 목록</h2>
-                <p className="muted">
-                  {screen === "collecting"
-                    ? "채팅창에 아무 말이나 입력하면 참여됩니다."
-                    : "모집을 시작하면 채팅 참여자가 여기에 표시됩니다."}
-                </p>
-              </div>
-              <Status status={chatStatus} />
-            </div>
-            <div className="participants">
-              {participants.length === 0 ? (
-                <div className="empty">아직 참여자가 없습니다.</div>
-              ) : (
-                participants.map((viewer) => (
-                  <ViewerChip
-                    key={viewer.userIdHash}
-                    viewer={viewer}
-                    inactive={
-                      (options.subscriberOnly && !viewer.subscribe) ||
-                      (options.excludePreviousWinners &&
-                        winners.some(
-                          (winner) => winner.userIdHash === viewer.userIdHash
-                        ))
-                    }
-                  />
-                ))
-              )}
-            </div>
-            <div className="participant-footer">
-              <span>총 {participants.length}명</span>
-              <span>현재 추첨 가능 {eligibleCount}명</span>
-            </div>
-          </div>
-        </section>
-
-        {winners.length > 0 ? (
-          <section className="card history">
-            <h2>당첨 이력</h2>
-            <div className="winner-list">
-              {winners.map((winner, index) => (
-                <ViewerChip
-                  key={`${winner.userIdHash}-${index}`}
-                  viewer={winner}
-                  prefix={`${index + 1}.`}
-                />
-              ))}
-            </div>
-          </section>
+        {activeTab === "viewer-draw" ? (
+          <ViewerDrawTab
+            chatStatus={chatStatus}
+            eligibleCount={eligibleCount}
+            notice={notice}
+            options={options}
+            participants={participants}
+            remainingSeconds={remainingSeconds}
+            remainingTimeText={remainingTimeText}
+            screen={screen}
+            timerEnabled={timerEnabled}
+            timerMinutes={timerMinutes}
+            ttsEnabled={ttsSettings.enabled}
+            winners={winners}
+            onRestartCollecting={restartCollecting}
+            onRunDraw={runDraw}
+            onSetOptions={setOptions}
+            onSetTimerEnabled={setTimerEnabled}
+            onSetTimerMinutes={setTimerMinutes}
+            onSetTtsEnabled={(enabled) => setTtsSettings({ enabled })}
+            onStartCollecting={startCollecting}
+            onStopCollecting={stopCollecting}
+          />
         ) : null}
       </main>
 
@@ -467,6 +367,202 @@ function DrawApp({
         />
       ) : null}
     </div>
+  );
+}
+
+function ViewerDrawTab({
+  chatStatus,
+  eligibleCount,
+  notice,
+  options,
+  participants,
+  remainingSeconds,
+  remainingTimeText,
+  screen,
+  timerEnabled,
+  timerMinutes,
+  ttsEnabled,
+  winners,
+  onRestartCollecting,
+  onRunDraw,
+  onSetOptions,
+  onSetTimerEnabled,
+  onSetTimerMinutes,
+  onSetTtsEnabled,
+  onStartCollecting,
+  onStopCollecting,
+}: {
+  chatStatus: ChatStatus;
+  eligibleCount: number;
+  notice: string;
+  options: DrawOptions;
+  participants: Viewer[];
+  remainingSeconds: number | null;
+  remainingTimeText: string;
+  screen: Screen;
+  timerEnabled: boolean;
+  timerMinutes: number;
+  ttsEnabled: boolean;
+  winners: Viewer[];
+  onRestartCollecting: () => void;
+  onRunDraw: () => void;
+  onSetOptions: React.Dispatch<React.SetStateAction<DrawOptions>>;
+  onSetTimerEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  onSetTimerMinutes: React.Dispatch<React.SetStateAction<number>>;
+  onSetTtsEnabled: (enabled: boolean) => void;
+  onStartCollecting: () => void;
+  onStopCollecting: () => void;
+}) {
+  return (
+    <>
+      <section className="toolbar card">
+        <div className="toolbar-buttons">
+          {screen === "ready" ? (
+            <button className="primary large" onClick={onStartCollecting}>
+              참여자 모집 시작
+            </button>
+          ) : null}
+          {screen === "collecting" ? (
+            <>
+              <button className="primary large" onClick={onRunDraw}>
+                추첨하기
+              </button>
+              <button className="secondary large" onClick={onStopCollecting}>
+                참여자 모집 종료
+              </button>
+            </>
+          ) : null}
+          {screen === "completed" ? (
+            <>
+              <button className="primary large" onClick={onRunDraw}>
+                추첨하기
+              </button>
+              <button className="secondary large" onClick={onRestartCollecting}>
+                참여자 다시 모집하기
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        <div className="option-grid">
+          <Toggle
+            label="구독자만 추첨하기"
+            checked={options.subscriberOnly}
+            onChange={() =>
+              onSetOptions((current) => ({
+                ...current,
+                subscriberOnly: !current.subscriberOnly,
+              }))
+            }
+          />
+          <Toggle
+            label="이미 당첨된 시청자 제외하기"
+            checked={options.excludePreviousWinners}
+            onChange={() =>
+              onSetOptions((current) => ({
+                ...current,
+                excludePreviousWinners: !current.excludePreviousWinners,
+              }))
+            }
+          />
+          <div className="timer-option">
+            <Toggle
+              label="타이머 사용하기"
+              checked={timerEnabled}
+              onChange={() => onSetTimerEnabled((enabled) => !enabled)}
+            />
+            {timerEnabled ? (
+              <label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={timerMinutes}
+                  onChange={(event) => {
+                    const value = Math.floor(Number(event.target.value));
+                    onSetTimerMinutes(
+                      Number.isFinite(value) && value > 0 ? value : 1
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+                <span>분</span>
+              </label>
+            ) : null}
+          </div>
+          <Toggle
+            label="TTS 사용"
+            checked={ttsEnabled}
+            onChange={() => onSetTtsEnabled(!ttsEnabled)}
+          />
+        </div>
+      </section>
+
+      {remainingSeconds !== null ? (
+        <div className="timer">{remainingTimeText}</div>
+      ) : null}
+
+      {notice ? <p className="notice">{notice}</p> : null}
+
+      <section className="participant-layout">
+        <div className="card participants-card">
+          <div className="section-title">
+            <div>
+              <h2>참여자 목록</h2>
+              <p className="muted">
+                {screen === "collecting"
+                  ? "채팅창에 아무 말이나 입력하면 참여됩니다."
+                  : "모집을 시작하면 채팅 참여자가 여기에 표시됩니다."}
+              </p>
+            </div>
+            <Status status={chatStatus} />
+          </div>
+          <div className="participants">
+            {participants.length === 0 ? (
+              <div className="empty">아직 참여자가 없습니다.</div>
+            ) : (
+              participants.map((viewer) => (
+                <ViewerChip
+                  key={viewer.userIdHash}
+                  viewer={viewer}
+                  inactive={
+                    (options.subscriberOnly && !viewer.subscribe) ||
+                    (options.excludePreviousWinners &&
+                      winners.some(
+                        (winner) => winner.userIdHash === viewer.userIdHash
+                      ))
+                  }
+                />
+              ))
+            )}
+          </div>
+          <div className="participant-footer">
+            <span>총 {participants.length}명</span>
+            <span>현재 추첨 가능 {eligibleCount}명</span>
+          </div>
+        </div>
+      </section>
+
+      {winners.length > 0 ? (
+        <section className="card history">
+          <h2>당첨 이력</h2>
+          <div className="winner-list">
+            {winners.map((winner, index) => (
+              <ViewerChip
+                key={`${winner.userIdHash}-${index}`}
+                viewer={winner}
+                prefix={`${index + 1}.`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }
 

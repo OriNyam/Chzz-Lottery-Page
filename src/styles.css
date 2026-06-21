@@ -43,6 +43,9 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .channel img, .channel-placeholder { width: 42px; height: 42px; border-radius: 50%; background: #272c2f; object-fit: cover; }
 .channel span { display: block; color: #a9b0b0; font-size: 12px; margin-top: 3px; }
 .content { max-width: 1440px; margin: 0 auto; padding: 24px; }
+.tab-list { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; }
+.tab-button { border: 1px solid #ffffff12; border-radius: 999px; padding: 10px 16px; color: #a9b0b0; background: #181b1e; font-weight: 800; white-space: nowrap; }
+.tab-button.active { color: #072319; border-color: #00ffa3; background: #00ffa3; }
 .card { border: 1px solid #ffffff12; border-radius: 16px; background: #181b1e; box-shadow: 0 18px 42px #00000020; }
 .toolbar { padding: 18px; }
 .toolbar-buttons { display: flex; gap: 10px; }
