@@ -24,3 +24,17 @@ export interface DrawResult {
   shuffledCandidates: Viewer[];
   drawnAt: string;
 }
+
+export interface VoteOption {
+  id: string;
+  label: string;
+  author: Viewer;
+  count: number;
+}
+
+export interface VoteRouletteResult {
+  winner: VoteOption;
+  candidates: VoteOption[];
+  shuffledCandidates: VoteOption[];
+  drawnAt: string;
+}

@@ -69,6 +69,14 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .status.connected { color: #00ffa3; background: #00ffa315; }
 .status.error { color: #ff7d7d; background: #ff4c4c18; }
 .participants { min-height: 340px; max-height: 560px; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; padding: 18px; }
+.vote-options { min-height: 340px; max-height: 560px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); align-content: flex-start; gap: 10px; padding: 18px; }
+.vote-option-card { display: flex; min-height: 92px; flex-direction: column; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid #ffffff13; border-radius: 12px; background: #202428; }
+.vote-option-card > strong { color: #edf4f2; font-size: 20px; word-break: break-word; }
+.vote-option-card > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vote-count { padding: 5px 8px; border-radius: 99px; color: #00ffa3; background: #00ffa315; font-size: 12px; font-weight: 800; }
+.vote-winner-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 14px; }
+.vote-winner-summary strong { color: #00ffa3; font-size: 28px; }
+.vote-winner-summary span { color: #a9b0b0; }
 .empty { width: 100%; align-self: center; color: #727a7a; text-align: center; }
 .viewer-chip { display: inline-flex; align-items: center; gap: 6px; height: fit-content; padding: 9px 11px; border: 1px solid #ffffff13; border-radius: 9px; background: #202428; font-size: 14px; }
 .viewer-chip.inactive { opacity: .28; text-decoration: line-through; }
@@ -99,6 +107,21 @@ header { border-bottom: 1px solid #ffffff12; background: #141719cc; backdrop-fil
 .chat-balloon { width: fit-content; max-width: 90%; padding: 9px 11px; border-radius: 3px 10px 10px 10px; color: #edf4f2 !important; background: #26302f; line-height: 1.45; }
 @keyframes slot-spin { from { transform: translateY(0); } to { transform: translateY(calc(-100% + 78px)); } }
 @keyframes winner-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+
+.roulette-modal { position: relative; width: min(760px, 100%); min-height: 560px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; padding: 30px; border: 1px solid #00ffa344; border-radius: 22px; background: radial-gradient(circle at 50% 35%, #1f3430, #15191b 58%); box-shadow: 0 0 90px #00ffa31f; text-align: center; overflow: hidden; }
+.roulette-pointer { width: 0; height: 0; margin-bottom: -8px; border-inline: 16px solid transparent; border-top: 0; border-bottom: 28px solid #00ffa3; filter: drop-shadow(0 0 12px #00ffa399); z-index: 2; }
+.roulette-wheel-wrap { position: relative; width: min(360px, 82vw); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(from 0deg, #00ffa3 0 12deg, #24302f 12deg 24deg, #36ffd0 24deg 36deg, #1a2022 36deg 48deg); box-shadow: inset 0 0 0 12px #101416, 0 0 45px #00ffa324; }
+.roulette-wheel { position: absolute; inset: 18px; border-radius: 50%; background: radial-gradient(circle, #18201f 0 34%, #111618 35% 100%); animation: roulette-spin 3.6s cubic-bezier(.09,.74,.08,1) forwards; }
+.roulette-item { position: absolute; left: 50%; top: 50%; width: 112px; margin-left: -56px; margin-top: -15px; overflow: hidden; padding: 6px 8px; border: 1px solid #ffffff18; border-radius: 99px; background: #202b29e6; color: #edf4f2; font-size: 13px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 4px 12px #00000040; }
+.roulette-center { position: relative; z-index: 2; display: grid; width: 82px; height: 82px; place-items: center; border: 8px solid #101416; border-radius: 50%; color: #08231a; background: #00ffa3; font-size: 34px; font-weight: 900; box-shadow: 0 0 24px #00ffa366; }
+.roulette-winner { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 16px; animation: winner-in .45s ease both; }
+.roulette-winner > strong { max-width: 100%; padding: 12px 20px; border: 1px solid #00ffa355; border-radius: 16px; color: #00ffa3; background: #0f241f; font-size: clamp(38px, 8vw, 76px); font-weight: 1000; line-height: 1.05; word-break: break-word; box-shadow: 0 0 42px #00ffa324; }
+.roulette-winner p { color: #a9b0b0; }
+.roulette-author { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; color: #a9b0b0; }
+.fanfare { position: absolute; inset: 0; pointer-events: none; }
+.fanfare i { --angle: calc(var(--i) * 15deg); position: absolute; left: 50%; top: 42%; width: 10px; height: 18px; border-radius: 3px; background: hsl(calc(var(--i) * 28), 100%, 65%); transform: rotate(var(--angle)) translateY(0) scale(.25); animation: confetti-pop .9s ease-out forwards; animation-delay: calc((var(--i) % 6) * 30ms); }
+@keyframes roulette-spin { from { transform: rotate(0deg); } to { transform: rotate(2038deg); } }
+@keyframes confetti-pop { 0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scale(.25); } 20% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--angle)) translateY(-250px) rotate(540deg) scale(1); } }
 
 @media (max-width: 850px) {
   .header-inner { align-items: flex-start; flex-direction: column; }

@@ -3,7 +3,19 @@ import { connectChat, type ChatConnection } from "./lib/chat";
 import { findChannel } from "./lib/channel";
 import { drawViewer, selectEligibleViewers } from "./lib/draw";
 import { speakMessage, stopSpeaking } from "./lib/speech";
-import type { Channel, DrawOptions, DrawResult, Viewer } from "./types";
+import {
+  drawVoteOption,
+  normalizeVoteLabel,
+  parseVoteMessage,
+} from "./lib/voteRoulette";
+import type {
+  Channel,
+  DrawOptions,
+  DrawResult,
+  Viewer,
+  VoteOption,
+  VoteRouletteResult,
+} from "./types";
 
 const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
@@ -14,7 +26,7 @@ interface TtsSettings {
 
 type Screen = "ready" | "collecting" | "completed";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
-type AppTabId = "viewer-draw";
+type AppTabId = "viewer-draw" | "free-vote-roulette";
 
 const APP_TABS: Array<{
   id: AppTabId;
@@ -25,6 +37,11 @@ const APP_TABS: Array<{
     label: "시청자 추첨",
   },
 ];
+
+APP_TABS.push({
+  id: "free-vote-roulette",
+  label: "자유투표 룰렛",
+});
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);
@@ -346,6 +363,9 @@ function DrawApp({
             onStopCollecting={stopCollecting}
           />
         ) : null}
+        {activeTab === "free-vote-roulette" ? (
+          <FreeVoteRouletteTab channelId={channel.channelId} />
+        ) : null}
       </main>
 
       <footer className="footer">
@@ -573,6 +593,281 @@ function ViewerDrawTab({
   );
 }
 
+function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
+  const [screen, setScreen] = useState<Screen>("ready");
+  const [subscriberOnly, setSubscriberOnly] = useState(false);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(1);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
+  const [notice, setNotice] = useState("");
+  const [options, setOptions] = useState<VoteOption[]>([]);
+  const [result, setResult] = useState<VoteRouletteResult | null>(null);
+  const [rouletteOpen, setRouletteOpen] = useState(false);
+  const optionMapRef = useRef(new Map<string, VoteOption>());
+  const flushTimeoutRef = useRef<number | null>(null);
+  const connectionRef = useRef<ChatConnection | null>(null);
+  const subscriberOnlyRef = useRef(subscriberOnly);
+
+  useEffect(() => {
+    subscriberOnlyRef.current = subscriberOnly;
+  }, [subscriberOnly]);
+
+  function flushOptions() {
+    if (flushTimeoutRef.current !== null) {
+      window.clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+    setOptions([...optionMapRef.current.values()]);
+  }
+
+  function scheduleOptionFlush() {
+    if (flushTimeoutRef.current !== null) return;
+    flushTimeoutRef.current = window.setTimeout(flushOptions, 120);
+  }
+
+  function addVoteOption(viewer: Viewer, message: string) {
+    if (subscriberOnlyRef.current && !viewer.subscribe) return;
+
+    const label = parseVoteMessage(message);
+    if (!label) return;
+
+    const id = normalizeVoteLabel(label);
+    const current = optionMapRef.current.get(id);
+
+    if (current) {
+      optionMapRef.current.set(id, {
+        ...current,
+        count: current.count + 1,
+      });
+    } else {
+      optionMapRef.current.set(id, {
+        id,
+        label,
+        author: viewer,
+        count: 1,
+      });
+    }
+
+    scheduleOptionFlush();
+  }
+
+  function disconnect() {
+    connectionRef.current?.disconnect();
+    connectionRef.current = null;
+    setChatStatus("idle");
+  }
+
+  async function startCollecting() {
+    setNotice("");
+    setResult(null);
+    optionMapRef.current = new Map();
+    setOptions([]);
+    setChatStatus("connecting");
+    setScreen("collecting");
+    setRemainingSeconds(timerEnabled ? timerMinutes * 60 : null);
+
+    try {
+      connectionRef.current = await connectChat(
+        channelId,
+        addVoteOption,
+        (status) => setChatStatus(status)
+      );
+    } catch {
+      setChatStatus("error");
+      setNotice("채팅 연결에 실패했습니다. 방송 상태를 확인한 뒤 다시 시작해주세요.");
+    }
+  }
+
+  function stopCollecting() {
+    disconnect();
+    flushOptions();
+    setRemainingSeconds(null);
+    setScreen("completed");
+  }
+
+  function runRoulette() {
+    flushOptions();
+
+    try {
+      const nextResult = drawVoteOption([...optionMapRef.current.values()]);
+      setResult(nextResult);
+      setRouletteOpen(true);
+      setNotice("");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "룰렛 추첨에 실패했습니다.");
+    }
+  }
+
+  async function restartCollecting() {
+    disconnect();
+    await startCollecting();
+  }
+
+  useEffect(() => {
+    if (remainingSeconds === null || screen !== "collecting") return;
+    if (remainingSeconds <= 0) {
+      stopCollecting();
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setRemainingSeconds((current) => (current ?? 1) - 1),
+      1_000
+    );
+    return () => window.clearTimeout(timer);
+  }, [remainingSeconds, screen]);
+
+  useEffect(() => {
+    return () => {
+      connectionRef.current?.disconnect();
+      if (flushTimeoutRef.current !== null) {
+        window.clearTimeout(flushTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const remainingTimeText = useMemo(() => {
+    if (remainingSeconds === null) return "";
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, [remainingSeconds]);
+
+  return (
+    <>
+      <section className="toolbar card">
+        <div className="toolbar-buttons">
+          {screen === "ready" ? (
+            <button className="primary large" onClick={startCollecting}>
+              투표 모집 시작
+            </button>
+          ) : null}
+          {screen === "collecting" ? (
+            <button className="secondary large" onClick={stopCollecting}>
+              투표 모집 종료
+            </button>
+          ) : null}
+          {screen === "completed" ? (
+            <>
+              <button className="primary large" onClick={runRoulette}>
+                룰렛 돌리기
+              </button>
+              <button className="secondary large" onClick={restartCollecting}>
+                투표 다시 모집하기
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        <div className="option-grid">
+          <Toggle
+            label="구독자만 받기"
+            checked={subscriberOnly}
+            onChange={() => setSubscriberOnly((enabled) => !enabled)}
+          />
+          <div className="timer-option">
+            <Toggle
+              label="타이머 사용하기"
+              checked={timerEnabled}
+              onChange={() => setTimerEnabled((enabled) => !enabled)}
+            />
+            {timerEnabled ? (
+              <label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={timerMinutes}
+                  onChange={(event) => {
+                    const value = Math.floor(Number(event.target.value));
+                    setTimerMinutes(
+                      Number.isFinite(value) && value > 0 ? value : 1
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+                <span>분</span>
+              </label>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {remainingSeconds !== null ? (
+        <div className="timer">{remainingTimeText}</div>
+      ) : null}
+
+      {notice ? <p className="notice">{notice}</p> : null}
+
+      <section className="participant-layout">
+        <div className="card participants-card">
+          <div className="section-title">
+            <div>
+              <h2>룰렛 후보 목록</h2>
+              <p className="muted">
+                {screen === "collecting"
+                  ? "채팅에 !참치처럼 느낌표를 붙여 말하면 후보로 들어갑니다."
+                  : "모집을 시작하면 시청자가 직접 룰렛 후보를 추가할 수 있습니다."}
+              </p>
+            </div>
+            <Status status={chatStatus} />
+          </div>
+          <div className="vote-options">
+            {options.length === 0 ? (
+              <div className="empty">아직 룰렛 후보가 없습니다.</div>
+            ) : (
+              options.map((option) => (
+                <VoteOptionCard key={option.id} option={option} />
+              ))
+            )}
+          </div>
+          <div className="participant-footer">
+            <span>후보 {options.length}개</span>
+            <span>총 추천 {options.reduce((sum, option) => sum + option.count, 0)}회</span>
+          </div>
+        </div>
+      </section>
+
+      {result ? (
+        <section className="card history">
+          <h2>최근 룰렛 결과</h2>
+          <div className="vote-winner-summary">
+            <strong>{result.winner.label}</strong>
+            <span>후보 {result.candidates.length}개 중 당첨</span>
+          </div>
+        </section>
+      ) : null}
+
+      {rouletteOpen && result ? (
+        <VoteRouletteModal
+          result={result}
+          onClose={() => setRouletteOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function VoteOptionCard({ option }: { option: VoteOption }) {
+  return (
+    <div className="vote-option-card">
+      <strong>{option.label}</strong>
+      <div>
+        <ViewerChip viewer={option.author} />
+        <span className="vote-count">{option.count}회</span>
+      </div>
+    </div>
+  );
+}
+
 function Toggle({
   label,
   checked,
@@ -727,6 +1022,74 @@ function SlotModal({
                   ))
                 )}
               </div>
+            </div>
+            <button className="primary large" onClick={onClose}>
+              닫기
+            </button>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function VoteRouletteModal({
+  result,
+  onClose,
+}: {
+  result: VoteRouletteResult;
+  onClose: () => void;
+}) {
+  const [complete, setComplete] = useState(false);
+  const wheelItems = useMemo(() => {
+    const candidates = result.shuffledCandidates.slice(0, 16);
+    return candidates.length > 0 ? candidates : [result.winner];
+  }, [result]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setComplete(true), 3_600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="modal-backdrop">
+      <section className={`roulette-modal ${complete ? "complete" : ""}`}>
+        {!complete ? (
+          <>
+            <p className="eyebrow">FAIR ROULETTE</p>
+            <div className="roulette-pointer" />
+            <div className="roulette-wheel-wrap">
+              <div className="roulette-wheel">
+                {wheelItems.map((option, index) => {
+                  const angle = (360 / wheelItems.length) * index;
+                  return (
+                    <div
+                      className="roulette-item"
+                      key={`${option.id}-${index}`}
+                      style={{ transform: `rotate(${angle}deg) translateY(-132px) rotate(-${angle}deg)` }}
+                    >
+                      {option.label}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="roulette-center">?</div>
+            </div>
+            <p className="muted">CSPRNG + Fisher-Yates로 당첨 후보를 먼저 공정하게 확정합니다.</p>
+          </>
+        ) : (
+          <div className="roulette-winner">
+            <div className="fanfare" aria-hidden="true">
+              {Array.from({ length: 24 }, (_, index) => (
+                <i key={index} style={{ "--i": index } as React.CSSProperties} />
+              ))}
+            </div>
+            <p className="eyebrow">ROULETTE WINNER</p>
+            <strong>{result.winner.label}</strong>
+            <p>후보 {result.candidates.length}개 중 당첨되었습니다.</p>
+            <div className="roulette-author">
+              <span>처음 등록한 시청자</span>
+              <ViewerChip viewer={result.winner.author} />
             </div>
             <button className="primary large" onClick={onClose}>
               닫기
