@@ -17,8 +17,8 @@ const author = {
 };
 
 const options: VoteOption[] = [
-  { id: "a", label: "참치", author, count: 1 },
-  { id: "b", label: "연어", author, count: 1 },
+  { id: "a", label: "참치", author, count: 1, voters: [author] },
+  { id: "b", label: "연어", author, count: 1, voters: [author] },
 ];
 
 describe("parseVoteMessage", () => {

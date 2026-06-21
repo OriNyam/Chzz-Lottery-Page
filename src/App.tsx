@@ -657,6 +657,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
       ...option,
       author: voters[0],
       count: voters.length,
+      voters,
     });
   }
 
@@ -685,6 +686,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
         label,
         author: viewer,
         count: 0,
+        voters: [],
       });
     }
 
@@ -1109,7 +1111,10 @@ function VoteRouletteWheel({
   spinning?: boolean;
   winnerId?: string;
 }) {
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const wheelItems = options.slice(0, 16);
+  const selectedOption =
+    wheelItems.find((option) => option.id === selectedOptionId) ?? null;
   const radius = 170;
   const center = 180;
   const winnerIndex = Math.max(
@@ -1119,6 +1124,15 @@ function VoteRouletteWheel({
   const sliceAngle = wheelItems.length > 0 ? 360 / wheelItems.length : 0;
   const winnerCenterAngle = winnerIndex * sliceAngle + sliceAngle / 2;
   const spinDegrees = 360 * 6 - winnerCenterAngle;
+
+  useEffect(() => {
+    if (
+      selectedOptionId &&
+      !wheelItems.some((option) => option.id === selectedOptionId)
+    ) {
+      setSelectedOptionId(null);
+    }
+  }, [selectedOptionId, wheelItems]);
 
   function describeSlice(startAngle: number, endAngle: number) {
     const start = polarToCartesian(center, center, radius, endAngle);
@@ -1160,15 +1174,37 @@ function VoteRouletteWheel({
                   labelAngle
                 );
 
+                function toggleOption() {
+                  if (spinning) return;
+                  setSelectedOptionId((current) =>
+                    current === option.id ? null : option.id
+                  );
+                }
+
                 return (
-                  <g key={`${option.id}-${index}`}>
-                    <path
-                      className="roulette-slice"
-                      d={describeSlice(startAngle, endAngle)}
-                      style={{
-                        fill: `hsl(${(index * 47) % 360} 76% 42%)`,
-                      }}
-                    />
+                  <g
+                    key={`${option.id}-${index}`}
+                    className="roulette-slice-button"
+                    role="button"
+                    tabIndex={spinning ? -1 : 0}
+                    aria-label={`${option.label} 투표자 보기`}
+                    onClick={toggleOption}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleOption();
+                      }
+                    }}
+                  >
+                      <path
+                        className={`roulette-slice ${
+                          selectedOptionId === option.id ? "selected" : ""
+                        }`}
+                        d={describeSlice(startAngle, endAngle)}
+                        style={{
+                          fill: `hsl(${(index * 47) % 360} 76% 42%)`,
+                        }}
+                      />
                     <text
                       className="roulette-label"
                       x={labelPosition.x}
@@ -1188,6 +1224,16 @@ function VoteRouletteWheel({
         ) : null}
         <div className="roulette-center">{options.length || "?"}</div>
       </div>
+      {selectedOption ? (
+        <div className="roulette-tooltip">
+          <strong>{selectedOption.label}</strong>
+          <div className="roulette-voter-list">
+            {selectedOption.voters.map((viewer) => (
+              <ViewerChip key={viewer.userIdHash} viewer={viewer} />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

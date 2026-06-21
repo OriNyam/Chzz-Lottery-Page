@@ -30,6 +30,7 @@ export interface VoteOption {
   label: string;
   author: Viewer;
   count: number;
+  voters: Viewer[];
 }
 
 export interface VoteRouletteResult {
