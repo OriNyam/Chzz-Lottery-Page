@@ -1746,6 +1746,7 @@ function SlotModal({
   const [messages, setMessages] = useState<string[]>([]);
   const [winnerChatStatus, setWinnerChatStatus] =
     useState<ChatStatus>("connecting");
+  const messagesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setComplete(true), 2_800);
@@ -1789,6 +1790,13 @@ function SlotModal({
     };
   }, [channelId, complete, result.winner.userIdHash, ttsSettings]);
 
+  useEffect(() => {
+    const messagesElement = messagesRef.current;
+    if (!messagesElement) return;
+
+    messagesElement.scrollTop = messagesElement.scrollHeight;
+  }, [messages]);
+
   return (
     <div className="modal-backdrop">
       <section className={`slot-modal ${complete ? "complete" : ""}`}>
@@ -1815,7 +1823,7 @@ function SlotModal({
                 <strong>당첨자 채팅</strong>
                 <Status status={winnerChatStatus} />
               </div>
-              <div className="winner-chat-messages">
+              <div className="winner-chat-messages" ref={messagesRef}>
                 {messages.length === 0 ? (
                   <p className="small muted">당첨자 채팅 대기 중입니다.</p>
                 ) : (
