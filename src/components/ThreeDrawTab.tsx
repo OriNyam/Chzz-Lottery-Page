@@ -360,7 +360,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
           />
           <div className="timer-option">
             <Toggle
-              label="타이머 사용"
+              label="타이머 사용하기"
               checked={timerEnabled}
               onChange={() => setTimerEnabled((enabled) => !enabled)}
             />
