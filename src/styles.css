@@ -147,7 +147,9 @@ header { border-bottom: 1px solid rgba(201, 228, 251, .9); background: rgba(255,
 .character-finalists-title p { color: #6f4700; font-size: 15px; font-weight: 1000; }
 .character-finalists-title h2 { color: var(--ink-strong); font-size: clamp(26px, 5vw, 42px); }
 .character-finalists-list { width: 100%; display: grid; gap: 8px; }
-.character-finalists-list p { width: 100%; margin: 0; padding: 10px 12px; border: 1px solid rgba(201, 228, 251, .9); border-radius: 10px; color: var(--ink-strong); background: rgba(244, 251, 255, .86); font-size: clamp(17px, 3vw, 23px); font-weight: 1000; line-height: 1.2; word-break: break-word; }
+.character-finalist-chip { width: 100%; justify-content: center; padding: 10px 12px; border-color: rgba(201, 228, 251, .9); color: var(--ink-strong); background: rgba(244, 251, 255, .86); font-size: clamp(17px, 3vw, 23px); font-weight: 1000; line-height: 1.2; word-break: break-word; }
+.character-finalist-chip img { width: 22px; height: 22px; }
+.character-finalist-chip b { font-size: 11px; }
 .character-finalists-panel .primary { min-width: 160px; margin-top: 2px; }
 .orb-winner-panel { position: absolute; left: 0; top: 0; z-index: 3; display: grid; gap: 6px; justify-items: center; pointer-events: none; transform-origin: center bottom; transition: opacity .16s ease; filter: drop-shadow(0 0 10px rgba(255, 211, 88, .48)) drop-shadow(0 8px 18px rgba(0, 0, 0, .22)); }
 .orb-winner-panel.preloaded { opacity: 0; visibility: hidden; transform: translate(-9999px, -9999px); }

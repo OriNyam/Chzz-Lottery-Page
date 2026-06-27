@@ -101,11 +101,12 @@ export function CharacterStage({
   const [error, setError] = useState("");
   const [introVisible, setIntroVisible] = useState(true);
 
-  const finalistNames = [...orbs]
-    .map((orb) => orb.label)
+  const finalists = [...orbs]
     .sort((left, right) => {
-      const firstCompare = left.charAt(0).localeCompare(right.charAt(0), "ko-KR");
-      return firstCompare || left.localeCompare(right, "ko-KR");
+      const firstCompare = left.label
+        .charAt(0)
+        .localeCompare(right.label.charAt(0), "ko-KR");
+      return firstCompare || left.label.localeCompare(right.label, "ko-KR");
     });
 
   function startStage() {
@@ -710,8 +711,19 @@ export function CharacterStage({
               <h2>축하합니다</h2>
             </div>
             <div className="character-finalists-list">
-              {finalistNames.map((name, index) => (
-                <p key={`${name}-${index}`}>{name}</p>
+              {finalists.map((finalist, index) => (
+                <div className="viewer-chip character-finalist-chip" key={`${finalist.id}-${index}`}>
+                  {finalist.badges.map((badge, badgeIndex) => (
+                    <img
+                      key={`${finalist.id}-badge-${badgeIndex}`}
+                      src={badge}
+                      alt=""
+                      loading="eager"
+                    />
+                  ))}
+                  <span>{finalist.label}</span>
+                  {finalist.subscribe ? <b>구독</b> : null}
+                </div>
               ))}
             </div>
             <button className="primary" type="button" onClick={startStage}>
