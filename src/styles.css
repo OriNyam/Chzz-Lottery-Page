@@ -69,9 +69,10 @@ button:disabled { cursor: wait; opacity: .65; transform: none; }
 .large { min-height: 54px; }
 
 header { border-bottom: 1px solid rgba(201, 228, 251, .9); background: rgba(255, 255, 255, .82); box-shadow: 0 8px 30px rgba(89, 146, 204, .1); backdrop-filter: blur(16px); }
-.header-inner { max-width: 1440px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px 24px; }
+.header-inner { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 18px; padding: 18px 24px; }
 .header-inner h1 { margin-top: 5px; font-size: 27px; }
-.channel { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid rgba(201, 228, 251, .9); border-radius: 14px; background: rgba(255, 255, 255, .64); }
+.header-brand-mark { justify-self: center; width: auto; height: 64px; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(87, 143, 201, .22)); }
+.channel { justify-self: end; display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid rgba(201, 228, 251, .9); border-radius: 14px; background: rgba(255, 255, 255, .64); }
 .channel img, .channel-placeholder { width: 42px; height: 42px; border-radius: 50%; background: #dbeeff; object-fit: cover; }
 .channel strong { color: var(--ink-strong); }
 .channel span { display: block; color: #6d8dad; font-size: 12px; margin-top: 3px; }
@@ -245,7 +246,8 @@ header { border-bottom: 1px solid rgba(201, 228, 251, .9); background: rgba(255,
 @keyframes confetti-pop { 0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scale(.25); } 20% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--angle)) translateY(-250px) rotate(540deg) scale(1); } }
 
 @media (max-width: 850px) {
-  .header-inner { align-items: flex-start; flex-direction: column; }
+  .header-inner { display: flex; align-items: center; flex-direction: column; }
+  .header-brand-mark { order: -1; height: 58px; }
   .channel { width: 100%; }
   .channel .text-button { margin-left: auto; }
   .roulette-preview-body { grid-template-columns: 1fr; }

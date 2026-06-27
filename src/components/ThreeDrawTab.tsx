@@ -349,7 +349,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
             }
           />
           <Toggle
-            label="이미 당첨된 시청자 제외"
+            label="이미 당첨된 시청자 제외하기"
             checked={options.excludePreviousWinners}
             onChange={() =>
               setOptions((current) => ({
@@ -440,7 +440,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
 
       {previousWinners.length > 0 ? (
         <section className="card history">
-          <h2>3D 추첨 당첨 이력</h2>
+          <h2>당첨 이력</h2>
           <div className="winner-list">
             {previousWinners.map((winner, index) => (
               <ViewerChip

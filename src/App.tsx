@@ -352,6 +352,7 @@ function DrawApp({
             <p className="eyebrow">FAIR CHZZK DRAW</p>
             <h1>{activeTabLabel}</h1>
           </div>
+          <img className="header-brand-mark" src="/nyami-logo.png" alt="Nyami" />
           <div className="channel">
             {channel.channelImageUrl ? (
               <img src={channel.channelImageUrl} alt="" />
