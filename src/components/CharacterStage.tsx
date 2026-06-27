@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 declare global {
@@ -81,6 +82,10 @@ const ATTACK_ANIMATION_NAMES = [
 ];
 
 const ORB_COLORS = [0xffffff, 0xffd6e8, 0xcfe8ff, 0xd8ffe1, 0xffefb8];
+const sharedGltfLoader = new GLTFLoader();
+const gltfMemoryCache = new Map<string, Promise<GLTF>>();
+
+THREE.Cache.enabled = true;
 
 export function CharacterStage({
   orbs,
@@ -519,23 +524,18 @@ export function CharacterStage({
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
     resize();
 
-    const loader = new GLTFLoader();
-    loader.load(
-      TARGET_MODEL_URL,
-      (gltf) => {
+    loadCachedGltf(TARGET_MODEL_URL)
+      .then((gltf) => {
         addTargetRuntimes(gltf.scene);
-      },
-      undefined,
-      () => {
+      })
+      .catch(() => {
         addTargetRuntimes(null);
-      }
-    );
+      });
 
-    loader.load(
-      MODEL_URL,
-      (gltf) => {
+    loadCachedGltf(MODEL_URL)
+      .then((gltf) => {
         if (disposed) return;
-        character = gltf.scene;
+        character = cloneStageModel(gltf.scene) as THREE.Group;
         character.position.set(0, 0, 4.2);
         character.rotation.y = cameraYaw + MODEL_FACING_OFFSET;
 
@@ -590,15 +590,13 @@ export function CharacterStage({
         scene.add(character);
         playAnimation("idle", 0);
         setLoadingMessage("");
-      },
-      undefined,
-      () => {
+      })
+      .catch(() => {
         if (!disposed) {
           setLoadingMessage("");
           setError("캐릭터 모델을 불러오지 못했습니다.");
         }
-      }
-    );
+      });
 
     animate();
 
@@ -618,7 +616,9 @@ export function CharacterStage({
       });
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
-          object.geometry.dispose();
+          if (!object.userData.cachedGltfGeometry) {
+            object.geometry.dispose();
+          }
           const materials = Array.isArray(object.material)
             ? object.material
             : [object.material];
@@ -654,6 +654,35 @@ function findClip(clips: THREE.AnimationClip[], names: readonly string[]) {
     .find((clip): clip is THREE.AnimationClip => Boolean(clip));
 }
 
+function loadCachedGltf(url: string) {
+  const cached = gltfMemoryCache.get(url);
+  if (cached) return cached;
+
+  const request = new Promise<GLTF>((resolve, reject) => {
+    sharedGltfLoader.load(url, resolve, undefined, reject);
+  }).catch((error) => {
+    gltfMemoryCache.delete(url);
+    throw error;
+  });
+
+  gltfMemoryCache.set(url, request);
+  return request;
+}
+
+function cloneStageModel(source: THREE.Object3D) {
+  const cloned = cloneSkeleton(source);
+
+  cloned.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.userData.cachedGltfGeometry = true;
+    object.material = Array.isArray(object.material)
+      ? object.material.map((material) => material.clone())
+      : object.material.clone();
+  });
+
+  return cloned;
+}
+
 function lerpAngle(current: number, target: number, alpha: number) {
   const delta =
     ((((target - current) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) -
@@ -686,7 +715,7 @@ function createOrb(
   const baseColor = new THREE.Color(colorValue);
 
   const model = targetModel
-    ? cloneSkeleton(targetModel)
+    ? cloneStageModel(targetModel)
     : createFallbackTargetModel(baseColor);
   prepareTargetModel(model, baseColor);
   root.add(model);
