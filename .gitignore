@@ -3,3 +3,5 @@ dist
 .wrangler
 *.local
 *.tsbuildinfo
+vite-dev.log
+public/models/

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ThreeDrawTab } from "./components/ThreeDrawTab";
 import { connectChat, connectDonation, type ChatConnection } from "./lib/chat";
 import { findChannel } from "./lib/channel";
 import { drawViewer, selectEligibleViewers } from "./lib/draw";
@@ -21,6 +22,8 @@ import type {
 
 const CHANNEL_STORAGE_KEY = "fair-chzzk-draw-channel";
 const TTS_STORAGE_KEY = "fair-chzzk-draw-tts";
+const CHAT_CONNECTION_FAILURE_MESSAGE =
+  "채팅 연결에 실패했습니다. 연령제한, 지역제한 상태인지 확인해주세요.";
 const SHOW_TEST_PLAIN_CHAT_TOGGLE = false;
 const SHOW_TEST_PLAIN_DONATION_TOGGLE = true;
 const ENABLE_DONATION_VOTE_ROULETTE = false;
@@ -33,6 +36,7 @@ type Screen = "ready" | "collecting" | "completed";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
 type AppTabId =
   | "viewer-draw"
+  | "three-draw"
   | "number-vote"
   | "free-vote-roulette"
   | "donation-vote-roulette";
@@ -55,6 +59,11 @@ const APP_TABS: Array<{
     label: "오리 추첨",
   },
 ];
+
+APP_TABS.push({
+  id: "three-draw",
+  label: "이중가챠 추첨",
+});
 
 APP_TABS.push({
   id: "number-vote",
@@ -259,7 +268,7 @@ function DrawApp({
       );
     } catch {
       setChatStatus("error");
-      setNotice("채팅 연결에 실패했습니다. 방송 상태를 확인한 뒤 다시 시작해주세요.");
+      setNotice(CHAT_CONNECTION_FAILURE_MESSAGE);
     }
   }
 
@@ -397,6 +406,9 @@ function DrawApp({
             onStartCollecting={startCollecting}
             onStopCollecting={stopCollecting}
           />
+        ) : null}
+        {activeTab === "three-draw" ? (
+          <ThreeDrawTab channelId={channel.channelId} />
         ) : null}
         {activeTab === "number-vote" ? (
           <NumberVoteTab channelId={channel.channelId} />
@@ -741,7 +753,7 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
       );
     } catch {
       setChatStatus("error");
-      setNotice("채팅 연결에 실패했습니다. 방송 상태를 확인한 뒤 다시 시작해주세요.");
+      setNotice(CHAT_CONNECTION_FAILURE_MESSAGE);
     }
   }
 
@@ -1193,7 +1205,7 @@ function FreeVoteRouletteTab({ channelId }: { channelId: string }) {
       );
     } catch {
       setChatStatus("error");
-      setNotice("채팅 연결에 실패했습니다. 방송 상태를 확인한 뒤 다시 시작해주세요.");
+      setNotice(CHAT_CONNECTION_FAILURE_MESSAGE);
     }
   }
 
