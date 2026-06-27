@@ -958,7 +958,12 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
                 시청자는 채팅 맨 앞에 !투표1 또는 !투표 1처럼 입력해서 투표합니다.
               </p>
             </div>
-            <span className="status">{voteOptions.length}개</span>
+            <div className="number-vote-setup-actions">
+              <span className="status">{voteOptions.length}개</span>
+              <button className="secondary" onClick={addOption}>
+                항목 추가
+              </button>
+            </div>
           </div>
           <div className="number-vote-edit-list">
             {voteOptions.map((option, index) => (
@@ -978,9 +983,6 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
                 </button>
               </div>
             ))}
-            <button className="secondary large" onClick={addOption}>
-              항목 추가
-            </button>
           </div>
         </section>
       ) : (

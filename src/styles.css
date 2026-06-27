@@ -171,6 +171,8 @@ header { border-bottom: 1px solid rgba(201, 228, 251, .9); background: rgba(255,
 .three-draw-result .result-close { min-height: 40px; padding: 9px 18px; font-size: 14px; }
 
 .number-vote-setup, .number-vote-card { margin-top: 18px; overflow: hidden; }
+.number-vote-setup-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.number-vote-setup-actions .secondary { min-height: 36px; padding: 8px 14px; }
 .number-vote-edit-list { display: grid; gap: 10px; padding: 18px; }
 .number-vote-edit-item { display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .number-vote-edit-item strong { color: #4f86c8; font-weight: 1000; }
