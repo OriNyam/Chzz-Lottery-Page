@@ -68,16 +68,16 @@ const MODEL_FACING_OFFSET = Math.PI;
 
 const ANIMATION_NAMES: Record<AnimationKey, string[]> = {
   idle: ["Idle_11"],
-  walk: ["Walking", "Red_Carpet_Walk"],
-  run: ["Running", "Run_03"],
-  jump: ["Hop_with_Arms_Raised"],
+  walk: ["walking_2_inplace"],
+  run: ["Skip_Forward"],
+  jump: ["Regular_Jump"],
   attack: ["Right_Jab_from_Guard"],
   dance: ["Shake_It_Off_Dance"],
 };
 
 const ATTACK_ANIMATION_NAMES = [
+  "Boxing_Guard_Step_Knee_Strike",
   "Right_Jab_from_Guard",
-  "Right_Upper_Hook_from_Guard",
   "Boxing_Guard_Right_Straight_Kick",
 ];
 
