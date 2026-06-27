@@ -67,7 +67,7 @@ const ATTACK_FORWARD_DOT = 0.38;
 const MODEL_FACING_OFFSET = Math.PI;
 
 const ANIMATION_NAMES: Record<AnimationKey, string[]> = {
-  idle: ["Idle_11"],
+  idle: ["Idle_9", "Idle_11"],
   walk: ["walking_2_inplace"],
   run: ["Skip_Forward"],
   jump: ["Regular_Jump"],
@@ -543,7 +543,7 @@ export function CharacterStage({
         const size = box.getSize(new THREE.Vector3());
         const height = size.y || 1;
         const targetHeight = 2.35;
-        character.scale.setScalar(targetHeight / height);
+        character.scale.setScalar(Math.min(targetHeight / height, 1));
         const scaledBox = new THREE.Box3().setFromObject(character);
         character.position.y -= scaledBox.min.y;
 
