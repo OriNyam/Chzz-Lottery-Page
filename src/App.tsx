@@ -659,7 +659,6 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
   const [chatStatus, setChatStatus] = useState<ChatStatus>("idle");
   const [notice, setNotice] = useState("");
   const [hidden, setHidden] = useState(false);
-  const [sortByCount, setSortByCount] = useState(false);
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [drawResult, setDrawResult] = useState<DrawResult | null>(null);
   const [slotOpen, setSlotOpen] = useState(false);
@@ -859,15 +858,10 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
 
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, [remainingSeconds]);
-  const displayedOptions = useMemo(
-    () =>
-      [...voteOptions].sort((left, right) =>
-        sortByCount ? right.voters.length - left.voters.length : left.id - right.id
-      ),
-    [sortByCount, voteOptions]
-  );
+  const displayedOptions = voteOptions;
   const selectedOption =
     voteOptions.find((option) => option.id === selectedOptionId) ?? null;
+  const hideVoteCounts = hidden && screen === "collecting";
 
   return (
     <>
@@ -926,20 +920,11 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
               </label>
             ) : null}
           </div>
-          {screen !== "ready" ? (
-            <>
-              <Toggle
-                label="투표 내용 가리기"
-                checked={hidden}
-                onChange={() => setHidden((enabled) => !enabled)}
-              />
-              <Toggle
-                label="투표수 높은 순"
-                checked={sortByCount}
-                onChange={() => setSortByCount((enabled) => !enabled)}
-              />
-            </>
-          ) : null}
+          <Toggle
+            label="투표 수 가리기"
+            checked={hidden}
+            onChange={() => setHidden((enabled) => !enabled)}
+          />
         </div>
       </section>
 
@@ -1019,30 +1004,30 @@ function NumberVoteTab({ channelId }: { channelId: string }) {
                   >
                     <span className="number-vote-item-top">
                       <b>!투표{option.id + 1}</b>
-                      <strong>
-                        {hidden ? "투표 내용이 가려졌습니다" : option.name || "이름 없음"}
-                      </strong>
-                      <em>{option.voters.length}표</em>
+                      <strong>{option.name || "이름 없음"}</strong>
+                      <em>{hideVoteCounts ? "종료 후 공개" : `${option.voters.length}표`}</em>
                     </span>
                     <span className="number-vote-bar">
-                      <i style={{ width: `${percent}%` }} />
+                      <i style={{ width: hideVoteCounts ? "0%" : `${percent}%` }} />
                     </span>
-                    <span className="small muted">{percent.toFixed(1)}%</span>
+                    <span className="small muted">
+                      {hideVoteCounts ? "집계 중" : `${percent.toFixed(1)}%`}
+                    </span>
                   </button>
                 );
               })}
             </div>
             <aside className="number-vote-detail">
-              {selectedOption ? (
+              {hideVoteCounts ? (
+                <p className="empty">
+                  투표 종료 후 항목별 표 수와 투표자 목록이 공개됩니다.
+                </p>
+              ) : selectedOption ? (
                 <>
                   <div className="number-vote-detail-head">
                     <div>
                       <p className="eyebrow">!투표{selectedOption.id + 1}</p>
-                      <h2>
-                        {hidden
-                          ? "투표 내용이 가려졌습니다"
-                          : selectedOption.name || "이름 없음"}
-                      </h2>
+                      <h2>{selectedOption.name || "이름 없음"}</h2>
                     </div>
                     <button
                       className="primary"
