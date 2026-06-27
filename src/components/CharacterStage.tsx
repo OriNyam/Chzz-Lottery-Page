@@ -57,9 +57,10 @@ interface OrbRuntime {
 const MODEL_ASSET_BASE_URL = "https://orinyam0508-yt.win";
 const MODEL_URL =
   import.meta.env.VITE_CHARACTER_MODEL_URL ??
-  `${MODEL_ASSET_BASE_URL}/character.glb`;
+  `${MODEL_ASSET_BASE_URL}/models/character.glb`;
 const TARGET_MODEL_URL =
-  import.meta.env.VITE_TARGET_MODEL_URL ?? `${MODEL_ASSET_BASE_URL}/target.glb`;
+  import.meta.env.VITE_TARGET_MODEL_URL ??
+  `${MODEL_ASSET_BASE_URL}/models/target.glb`;
 const ATTACK_RANGE = 2.45;
 const ATTACK_FORWARD_DOT = 0.38;
 const MODEL_FACING_OFFSET = Math.PI;
