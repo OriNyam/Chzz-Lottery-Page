@@ -95,8 +95,27 @@ export function CharacterStage({
 }: CharacterStageProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const onBreakOrbRef = useRef(onBreakOrb);
+  const introLockedRef = useRef(true);
+  const introTimerRef = useRef<number | null>(null);
   const [loadingMessage, setLoadingMessage] = useState("캐릭터 불러오는 중");
   const [error, setError] = useState("");
+  const [introVisible, setIntroVisible] = useState(true);
+
+  const finalistNames = [...orbs]
+    .map((orb) => orb.label)
+    .sort((left, right) => {
+      const firstCompare = left.charAt(0).localeCompare(right.charAt(0), "ko-KR");
+      return firstCompare || left.localeCompare(right, "ko-KR");
+    });
+
+  function startStage() {
+    if (introTimerRef.current !== null) {
+      window.clearTimeout(introTimerRef.current);
+      introTimerRef.current = null;
+    }
+    introLockedRef.current = false;
+    setIntroVisible(false);
+  }
 
   useEffect(() => {
     onBreakOrbRef.current = onBreakOrb;
@@ -134,8 +153,15 @@ export function CharacterStage({
     if (!mountElement) return;
     const stageElement: HTMLElement = mountElement;
 
+    introLockedRef.current = true;
+    setIntroVisible(true);
+    setLoadingMessage("캐릭터 불러오는 중");
+    setError("");
+
     let disposed = false;
     let animationFrame = 0;
+    let targetReady = false;
+    let characterReady = false;
     let mixer: THREE.AnimationMixer | null = null;
     let character: THREE.Group | null = null;
     let activeAction: THREE.AnimationAction | null = null;
@@ -220,6 +246,26 @@ export function CharacterStage({
       });
     }
 
+    function markTargetReady(targetModel: THREE.Object3D | null) {
+      addTargetRuntimes(targetModel);
+      targetReady = true;
+      maybeShowFinalistsIntro();
+    }
+
+    function maybeShowFinalistsIntro() {
+      if (disposed || !targetReady || !characterReady) return;
+      setLoadingMessage("");
+      if (introTimerRef.current !== null) {
+        window.clearTimeout(introTimerRef.current);
+      }
+      introTimerRef.current = window.setTimeout(() => {
+        if (disposed) return;
+        introLockedRef.current = false;
+        setIntroVisible(false);
+        introTimerRef.current = null;
+      }, 5_000);
+    }
+
     function resize() {
       const width = mountElement!.clientWidth || 1;
       const height = mountElement!.clientHeight || 1;
@@ -264,7 +310,7 @@ export function CharacterStage({
 
     function handleAttack() {
       const now = performance.now();
-      if (!character || now - lastAttackAt < 420) return;
+      if (introLockedRef.current || !character || now - lastAttackAt < 420) return;
 
       lastAttackAt = now;
       playAttackSound();
@@ -328,7 +374,7 @@ export function CharacterStage({
         const leftPressed = keys.has("keya") || keys.has("arrowleft");
         const rightPressed = keys.has("keyd") || keys.has("arrowright");
         const running = keys.has("shiftleft") || keys.has("shiftright");
-        const inputLocked = now < lockedUntil;
+        const inputLocked = introLockedRef.current || now < lockedUntil;
 
         if (!inputLocked) {
           const cameraForward = new THREE.Vector3(
@@ -456,6 +502,7 @@ export function CharacterStage({
       if (["space", "keyw", "keya", "keys", "keyd", "keyj", "keyf"].includes(code)) {
         event.preventDefault();
       }
+      if (introLockedRef.current) return;
       if (!character) return;
       if (code === "space" && isGrounded) {
         isGrounded = false;
@@ -475,6 +522,11 @@ export function CharacterStage({
     }
 
     function handlePointerDown(event: PointerEvent) {
+      if (introLockedRef.current) {
+        event.preventDefault();
+        return;
+      }
+
       if (event.button === 2) {
         rightDragging = true;
         lastPointerX = event.clientX;
@@ -526,10 +578,10 @@ export function CharacterStage({
 
     loadCachedGltf(TARGET_MODEL_URL)
       .then((gltf) => {
-        addTargetRuntimes(gltf.scene);
+        markTargetReady(gltf.scene);
       })
       .catch(() => {
-        addTargetRuntimes(null);
+        markTargetReady(null);
       });
 
     loadCachedGltf(MODEL_URL)
@@ -589,7 +641,8 @@ export function CharacterStage({
 
         scene.add(character);
         playAnimation("idle", 0);
-        setLoadingMessage("");
+        characterReady = true;
+        maybeShowFinalistsIntro();
       })
       .catch(() => {
         if (!disposed) {
@@ -602,6 +655,10 @@ export function CharacterStage({
 
     return () => {
       disposed = true;
+      if (introTimerRef.current !== null) {
+        window.clearTimeout(introTimerRef.current);
+        introTimerRef.current = null;
+      }
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", handleKeyDown);
@@ -632,16 +689,36 @@ export function CharacterStage({
   return (
     <div className="character-stage">
       <div className="character-canvas" ref={mountRef} />
-      <div className="character-controls">
+      {!introVisible && !loadingMessage && !error ? (
+        <div className="character-controls">
         <span>우클릭 드래그 카메라</span>
         <span>W/A/S/D 이동</span>
         <span>Shift 달리기</span>
         <span>Space 점프</span>
         <span>J/좌클릭 공격</span>
         <span>F 춤추기</span>
-      </div>
+        </div>
+      ) : null}
       {loadingMessage ? (
         <div className="character-stage-message">{loadingMessage}</div>
+      ) : null}
+      {introVisible && !loadingMessage && !error ? (
+        <div className="character-finalists-intro">
+          <section className="character-finalists-panel">
+            <div className="character-finalists-title">
+              <p>최종후보 진출</p>
+              <h2>축하합니다</h2>
+            </div>
+            <div className="character-finalists-list">
+              {finalistNames.map((name, index) => (
+                <p key={`${name}-${index}`}>{name}</p>
+              ))}
+            </div>
+            <button className="primary" type="button" onClick={startStage}>
+              시작
+            </button>
+          </section>
+        </div>
       ) : null}
       {error ? <div className="character-stage-message error">{error}</div> : null}
     </div>
