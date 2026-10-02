@@ -125,6 +125,10 @@ header { border-bottom: 1px solid rgba(201, 228, 251, .9); background: rgba(255,
 .roulette-ranking-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roulette-ranking-item b { color: #4f86c8; font-size: 12px; }
 .history { margin-top: 18px; padding: 20px; }
+.history-heading { display: flex; align-items: center; gap: 10px; }
+.history-reset { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--ink-strong); background: rgba(244, 251, 255, .8); transition: background .2s ease, border-color .2s ease; }
+.history-reset:hover { border-color: var(--blue); background: #fff; }
+.history-reset:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .winner-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .footer { display: flex; justify-content: center; gap: 16px; padding: 0 24px 28px; color: #6d8dad; font-size: 13px; font-weight: 800; }
 .footer a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }

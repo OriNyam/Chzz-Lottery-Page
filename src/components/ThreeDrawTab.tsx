@@ -8,6 +8,8 @@ import {
 } from "../lib/threeDraw";
 import type { DrawOptions, Viewer } from "../types";
 import { CharacterStage } from "./CharacterStage";
+import { scheduleCharacterStagePreload } from "../lib/characterStageAssets";
+import { WinnerHistoryHeading } from "./WinnerHistoryHeading";
 
 type Screen = "ready" | "collecting" | "completed" | "stage";
 type ChatStatus = "idle" | "connecting" | "connected" | "error";
@@ -57,6 +59,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
   const flushTimeoutRef = useRef<number | null>(null);
   const connectionRef = useRef<ChatConnection | null>(null);
   const winnerConnectionRef = useRef<ChatConnection | null>(null);
+  const cancelPreloadRef = useRef<(() => void) | null>(null);
 
   function flushParticipants() {
     if (flushTimeoutRef.current !== null) {
@@ -96,6 +99,8 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
     setChatStatus("connecting");
     setScreen("collecting");
     setRemainingSeconds(timerEnabled ? timerMinutes * 60 : null);
+    cancelPreloadRef.current?.();
+    cancelPreloadRef.current = scheduleCharacterStagePreload();
 
     try {
       connectionRef.current = await connectChat(
@@ -202,6 +207,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
 
   useEffect(() => {
     return () => {
+      cancelPreloadRef.current?.();
       connectionRef.current?.disconnect();
       winnerConnectionRef.current?.disconnect();
       stopSpeaking();
@@ -440,7 +446,7 @@ export function ThreeDrawTab({ channelId }: ThreeDrawTabProps) {
 
       {previousWinners.length > 0 ? (
         <section className="card history">
-          <h2>당첨 이력</h2>
+          <WinnerHistoryHeading onReset={() => setPreviousWinners([])} />
           <div className="winner-list">
             {previousWinners.map((winner, index) => (
               <ViewerChip

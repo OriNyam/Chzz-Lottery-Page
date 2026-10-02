@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ThreeDrawTab } from "./components/ThreeDrawTab";
+import { WinnerHistoryHeading } from "./components/WinnerHistoryHeading";
 import { connectChat, connectDonation, type ChatConnection } from "./lib/chat";
 import { findChannel } from "./lib/channel";
 import { drawViewer, selectEligibleViewers } from "./lib/draw";
@@ -398,6 +399,7 @@ function DrawApp({
             timerMinutes={timerMinutes}
             ttsEnabled={ttsSettings.enabled}
             winners={winners}
+            onResetWinners={() => setWinners([])}
             onRestartCollecting={restartCollecting}
             onRunDraw={runDraw}
             onSetOptions={setOptions}
@@ -465,6 +467,7 @@ function ViewerDrawTab({
   timerMinutes,
   ttsEnabled,
   winners,
+  onResetWinners,
   onRestartCollecting,
   onRunDraw,
   onSetOptions,
@@ -486,6 +489,7 @@ function ViewerDrawTab({
   timerMinutes: number;
   ttsEnabled: boolean;
   winners: Viewer[];
+  onResetWinners: () => void;
   onRestartCollecting: () => void;
   onRunDraw: () => void;
   onSetOptions: React.Dispatch<React.SetStateAction<DrawOptions>>;
@@ -632,7 +636,7 @@ function ViewerDrawTab({
 
       {winners.length > 0 ? (
         <section className="card history">
-          <h2>당첨 이력</h2>
+          <WinnerHistoryHeading onReset={onResetWinners} />
           <div className="winner-list">
             {winners.map((winner, index) => (
               <ViewerChip

@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
+import {
+  loadCachedGltf,
+  MODEL_URL,
+  TARGET_MODEL_URL,
+} from "../lib/characterStageAssets";
 
 declare global {
   interface Window {
@@ -55,13 +58,6 @@ interface OrbRuntime {
   primaryReveal?: boolean;
 }
 
-const MODEL_ASSET_BASE_URL = "https://orinyam0508-yt.win";
-const MODEL_URL =
-  import.meta.env.VITE_CHARACTER_MODEL_URL ??
-  `${MODEL_ASSET_BASE_URL}/models/character.glb`;
-const TARGET_MODEL_URL =
-  import.meta.env.VITE_TARGET_MODEL_URL ??
-  `${MODEL_ASSET_BASE_URL}/models/target.glb`;
 const ATTACK_RANGE = 2.45;
 const ATTACK_FORWARD_DOT = 0.38;
 const MODEL_FACING_OFFSET = Math.PI;
@@ -82,10 +78,6 @@ const ATTACK_ANIMATION_NAMES = [
 ];
 
 const ORB_COLORS = [0xffffff, 0xffd6e8, 0xcfe8ff, 0xd8ffe1, 0xffefb8];
-const sharedGltfLoader = new GLTFLoader();
-const gltfMemoryCache = new Map<string, Promise<GLTF>>();
-
-THREE.Cache.enabled = true;
 
 export function CharacterStage({
   orbs,
@@ -741,21 +733,6 @@ function findClip(clips: THREE.AnimationClip[], names: readonly string[]) {
   return names
     .map((name) => clips.find((clip) => clip.name === name))
     .find((clip): clip is THREE.AnimationClip => Boolean(clip));
-}
-
-function loadCachedGltf(url: string) {
-  const cached = gltfMemoryCache.get(url);
-  if (cached) return cached;
-
-  const request = new Promise<GLTF>((resolve, reject) => {
-    sharedGltfLoader.load(url, resolve, undefined, reject);
-  }).catch((error) => {
-    gltfMemoryCache.delete(url);
-    throw error;
-  });
-
-  gltfMemoryCache.set(url, request);
-  return request;
 }
 
 function cloneStageModel(source: THREE.Object3D) {
