@@ -168,8 +168,8 @@ function ChannelRegistration({
     <main className="registration page">
       <section className="registration-card">
         <img className="brand-mark" src="/nyami-logo.png" alt="Nyami" />
-        <p className="eyebrow">FAIR CHZZK DRAW</p>
-        <h1>안녕하세요!<br />처음 오셨나요?</h1>
+        <p className="eyebrow">치지직 추첨기: FAIR VOTE</p>
+        <h1>치지직 추첨 페이지 입니다.</h1>
         <p className="muted">
           추첨을 진행할 치지직 채널의 주소(URL)를 알려주세요.
         </p>
@@ -190,7 +190,7 @@ function ChannelRegistration({
           설정 데이터는 현재 브라우저에만 저장됩니다.
         </p>
         <div className="fairness-note">
-          <strong>공정 추첨 엔진</strong>
+          <strong>추첨 엔진</strong>
           <span>CSPRNG + Fisher-Yates + rejection sampling</span>
         </div>
       </section>
@@ -349,7 +349,7 @@ function DrawApp({
       <header>
         <div className="header-inner">
           <div>
-            <p className="eyebrow">FAIR CHZZK DRAW</p>
+            <p className="eyebrow">치지직 추첨기: FAIR VOTE</p>
             <h1>{activeTabLabel}</h1>
           </div>
           <img className="header-brand-mark" src="/nyami-logo.png" alt="Nyami" />
